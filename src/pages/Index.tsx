@@ -138,6 +138,8 @@ const Index = () => {
           stops={route.stops}
           currentStopIndex={route.currentStopIndex}
           onStopClick={(stop) => handleStopSelect(stop, route.stops.findIndex(s => s.id === stop.id))}
+          isNavigating={route.status === 'in_progress'}
+          heading={heading}
         />
 
         {/* Speed Indicator */}

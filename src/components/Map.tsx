@@ -3,57 +3,98 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN, MAPBOX_STYLE } from '@/config/mapbox';
 import { Stop } from '@/types/route';
+import { useMapboxDirections } from '@/hooks/useMapboxDirections';
+import busFrontImage from '@/assets/bus-front.png';
 
 interface MapProps {
   userLocation: [number, number] | null;
   stops: Stop[];
   currentStopIndex: number;
   onStopClick?: (stop: Stop) => void;
+  isNavigating?: boolean;
+  heading?: number | null;
 }
 
-const Map: React.FC<MapProps> = ({ userLocation, stops, currentStopIndex, onStopClick }) => {
+const Map: React.FC<MapProps> = ({ 
+  userLocation, 
+  stops, 
+  currentStopIndex, 
+  onStopClick,
+  isNavigating = false,
+  heading = null
+}) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const userMarker = useRef<mapboxgl.Marker | null>(null);
   const stopMarkers = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
+  
+  const { routeCoordinates, fetchRoute, isLoading: isRouteLoading } = useMapboxDirections();
 
-  const createUserMarkerElement = useCallback(() => {
+  // Create bus marker element
+  const createBusMarkerElement = useCallback(() => {
     const el = document.createElement('div');
-    el.className = 'user-marker';
-    el.innerHTML = `
-      <div class="relative">
-        <div class="absolute -inset-4 bg-purple-500/30 rounded-full animate-ping"></div>
-        <div class="relative w-6 h-6 bg-gradient-to-br from-purple-600 to-red-500 rounded-full border-4 border-white shadow-lg"></div>
-        <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-8 border-l-transparent border-r-transparent border-b-purple-600" style="transform: translateX(-50%) rotate(0deg);"></div>
-      </div>
+    el.className = 'bus-marker';
+    el.style.cssText = `
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
     `;
+    
+    const img = document.createElement('img');
+    img.src = busFrontImage;
+    img.alt = 'Bus';
+    img.style.cssText = `
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+    `;
+    
+    el.appendChild(img);
     return el;
   }, []);
 
-  const createStopMarkerElement = useCallback((stop: Stop, index: number) => {
+  const createStopMarkerElement = useCallback((stop: Stop, index: number, isStart: boolean, isEnd: boolean) => {
     const isActive = index === currentStopIndex;
     const isCompleted = stop.status === 'completed';
     
     const el = document.createElement('div');
     el.className = 'stop-marker cursor-pointer';
     
-    let bgColor = 'bg-grey-300';
-    let borderColor = 'border-grey-500';
+    let bgColor = '#94a3b8'; // grey
+    let borderColor = '#64748b';
+    let icon = `${index + 1}`;
     
-    if (isCompleted) {
-      bgColor = 'bg-green-500';
-      borderColor = 'border-green-700';
+    if (isStart) {
+      bgColor = '#22c55e'; // green
+      borderColor = '#16a34a';
+      icon = '🏠';
+    } else if (isEnd) {
+      bgColor = '#ef4444'; // red
+      borderColor = '#dc2626';
+      icon = '🏁';
+    } else if (isCompleted) {
+      bgColor = '#22c55e';
+      borderColor = '#16a34a';
+      icon = '✓';
     } else if (isActive) {
-      bgColor = 'bg-yellow-900';
-      borderColor = 'border-yellow-700';
+      bgColor = '#eab308'; // yellow
+      borderColor = '#ca8a04';
     }
     
     el.innerHTML = `
       <div class="relative flex items-center justify-center">
-        ${isActive ? '<div class="absolute -inset-3 bg-yellow-500/40 rounded-full animate-ping"></div>' : ''}
-        <div class="relative w-10 h-10 ${bgColor} ${borderColor} border-4 rounded-full flex items-center justify-center shadow-lg font-bold text-white text-sm">
-          ${isCompleted ? '✓' : index + 1}
+        ${isActive ? '<div class="absolute -inset-3 rounded-full animate-ping" style="background-color: rgba(234, 179, 8, 0.4);"></div>' : ''}
+        <div class="relative flex items-center justify-center shadow-lg font-bold text-white text-sm" 
+             style="width: 44px; height: 44px; background-color: ${bgColor}; border: 4px solid ${borderColor}; border-radius: 50%;">
+          ${icon}
+        </div>
+        <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-semibold px-2 py-1 rounded bg-white shadow-md text-grey-800">
+          ${stop.name.length > 15 ? stop.name.substring(0, 15) + '...' : stop.name}
         </div>
       </div>
     `;
@@ -68,15 +109,16 @@ const Map: React.FC<MapProps> = ({ userLocation, stops, currentStopIndex, onStop
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    // Default center: Bogotá
-    const defaultCenter: [number, number] = [-74.0721, 4.7110];
+    // Default center: First stop or Bogotá
+    const defaultCenter: [number, number] = stops.length > 0 ? stops[0].coordinates : [-74.0721, 4.7110];
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: MAPBOX_STYLE,
-      center: stops.length > 0 ? stops[0].coordinates : defaultCenter,
-      zoom: 12,
-      pitch: 30,
+      center: defaultCenter,
+      zoom: 15,
+      pitch: 60, // First person perspective
+      bearing: 0,
     });
 
     map.current.addControl(
@@ -92,7 +134,7 @@ const Map: React.FC<MapProps> = ({ userLocation, stops, currentStopIndex, onStop
       setMapLoaded(true);
     });
 
-    // Fallback timeout in case load event doesn't fire
+    // Fallback timeout
     const timeout = setTimeout(() => {
       setMapLoaded(true);
     }, 5000);
@@ -104,26 +146,54 @@ const Map: React.FC<MapProps> = ({ userLocation, stops, currentStopIndex, onStop
     };
   }, []);
 
-  // Update user location marker
+  // Fetch optimized route from Directions API
+  useEffect(() => {
+    if (stops.length >= 2 && mapLoaded) {
+      const waypoints = stops.map(s => s.coordinates);
+      fetchRoute(waypoints);
+    }
+  }, [stops, mapLoaded, fetchRoute]);
+
+  // Update user location marker with bus icon
   useEffect(() => {
     if (!map.current || !userLocation) return;
 
     if (userMarker.current) {
       userMarker.current.setLngLat(userLocation);
+      
+      // Rotate bus based on heading
+      if (heading !== null) {
+        const el = userMarker.current.getElement();
+        el.style.transform = `rotate(${heading}deg)`;
+      }
     } else {
       userMarker.current = new mapboxgl.Marker({
-        element: createUserMarkerElement(),
+        element: createBusMarkerElement(),
+        rotationAlignment: 'map',
+        pitchAlignment: 'map',
       })
         .setLngLat(userLocation)
         .addTo(map.current);
+    }
 
+    // First person view: follow user and rotate map based on heading
+    if (isNavigating && heading !== null) {
+      map.current.easeTo({
+        center: userLocation,
+        bearing: heading,
+        pitch: 65,
+        zoom: 17,
+        duration: 1000,
+      });
+    } else {
       map.current.flyTo({
         center: userLocation,
-        zoom: 14,
+        zoom: 15,
+        pitch: 60,
         duration: 1500,
       });
     }
-  }, [userLocation, createUserMarkerElement]);
+  }, [userLocation, heading, isNavigating, createBusMarkerElement]);
 
   // Update stop markers
   useEffect(() => {
@@ -135,8 +205,11 @@ const Map: React.FC<MapProps> = ({ userLocation, stops, currentStopIndex, onStop
 
     // Add new markers
     stops.forEach((stop, index) => {
+      const isStart = index === 0;
+      const isEnd = index === stops.length - 1;
+      
       const marker = new mapboxgl.Marker({
-        element: createStopMarkerElement(stop, index),
+        element: createStopMarkerElement(stop, index, isStart, isEnd),
       })
         .setLngLat(stop.coordinates)
         .addTo(map.current!);
@@ -145,27 +218,38 @@ const Map: React.FC<MapProps> = ({ userLocation, stops, currentStopIndex, onStop
     });
 
     // Fit bounds to show all stops
-    if (stops.length > 1) {
+    if (stops.length > 1 && !isNavigating) {
       const bounds = new mapboxgl.LngLatBounds();
       stops.forEach(stop => bounds.extend(stop.coordinates));
-      map.current.fitBounds(bounds, { padding: 80, duration: 1000 });
+      map.current.fitBounds(bounds, { 
+        padding: { top: 100, bottom: 100, left: 100, right: 100 }, 
+        pitch: 45,
+        duration: 1000 
+      });
     }
-  }, [stops, currentStopIndex, createStopMarkerElement, mapLoaded]);
+  }, [stops, currentStopIndex, createStopMarkerElement, mapLoaded, isNavigating]);
 
-  // Draw route line
+  // Draw route line from Directions API
   useEffect(() => {
-    if (!map.current || stops.length < 2 || !mapLoaded) return;
+    if (!map.current || !mapLoaded) return;
 
-    const coordinates = stops.map(s => s.coordinates);
+    // Use Directions API route if available, otherwise fall back to straight lines
+    const coordinates = routeCoordinates || (stops.length >= 2 ? stops.map(s => s.coordinates) : null);
     
-    if (map.current.getSource('route')) {
-      (map.current.getSource('route') as mapboxgl.GeoJSONSource).setData({
+    if (!coordinates || coordinates.length < 2) return;
+
+    const sourceId = 'route';
+    const outlineId = 'route-outline';
+    const lineId = 'route-line';
+
+    if (map.current.getSource(sourceId)) {
+      (map.current.getSource(sourceId) as mapboxgl.GeoJSONSource).setData({
         type: 'Feature',
         properties: {},
         geometry: { type: 'LineString', coordinates },
       });
     } else {
-      map.current.addSource('route', {
+      map.current.addSource(sourceId, {
         type: 'geojson',
         data: {
           type: 'Feature',
@@ -174,33 +258,43 @@ const Map: React.FC<MapProps> = ({ userLocation, stops, currentStopIndex, onStop
         },
       });
 
+      // Route outline (white border)
       map.current.addLayer({
-        id: 'route-outline',
+        id: outlineId,
         type: 'line',
-        source: 'route',
+        source: sourceId,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#ffffff',
-          'line-width': 10,
+          'line-width': 12,
         },
       });
 
+      // Route line (purple gradient effect)
       map.current.addLayer({
-        id: 'route-line',
+        id: lineId,
         type: 'line',
-        source: 'route',
+        source: sourceId,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#7124F5',
-          'line-width': 6,
+          'line-width': 8,
         },
       });
     }
-  }, [stops, mapLoaded]);
+  }, [routeCoordinates, stops, mapLoaded]);
 
   return (
     <div className="relative w-full h-full bg-grey-100">
       <div ref={mapContainer} className="absolute inset-0" />
+      
+      {/* Route loading indicator */}
+      {isRouteLoading && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium text-grey-700">Calculando ruta óptima...</span>
+        </div>
+      )}
     </div>
   );
 };
