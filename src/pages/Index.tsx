@@ -4,7 +4,9 @@ import RoutePanel from '@/components/RoutePanel';
 import ActionBar from '@/components/ActionBar';
 import StopDetailSheet from '@/components/StopDetailSheet';
 import SpeedIndicator from '@/components/SpeedIndicator';
+import ETADisplay from '@/components/ETADisplay';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useETACalculation } from '@/hooks/useETACalculation';
 import { useToast } from '@/hooks/use-toast';
 import { MOCK_ROUTE } from '@/data/mockRoute';
 import { RouteData, Stop, Student, IncidentType, INCIDENT_CONFIG } from '@/types/route';
@@ -16,6 +18,17 @@ const Index = () => {
   const [route, setRoute] = useState<RouteData>(MOCK_ROUTE);
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
   const [isStopSheetOpen, setIsStopSheetOpen] = useState(false);
+
+  // ETA calculation
+  const { nextStopETA, stopETAs } = useETACalculation(
+    coordinates,
+    speed,
+    route.stops,
+    route.currentStopIndex
+  );
+
+  // Get next stop name
+  const nextStop = route.stops[route.currentStopIndex];
 
   // Handle start route
   const handleStartRoute = useCallback(() => {
@@ -144,6 +157,18 @@ const Index = () => {
 
         {/* Speed Indicator */}
         <SpeedIndicator speed={speed} heading={heading} />
+
+        {/* ETA Display - Only show when navigating */}
+        {route.status === 'in_progress' && nextStopETA && nextStop && (
+          <div className="absolute top-4 left-4 z-10">
+            <ETADisplay
+              distanceRemaining={nextStopETA.distanceRemaining}
+              etaMinutes={nextStopETA.etaMinutes}
+              etaTime={nextStopETA.etaTime}
+              stopName={nextStop.name}
+            />
+          </div>
+        )}
 
         {/* Geolocation Error */}
         {geoError && (
