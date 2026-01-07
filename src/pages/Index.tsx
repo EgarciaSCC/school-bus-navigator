@@ -5,11 +5,20 @@ import ActionBar from '@/components/ActionBar';
 import StopDetailSheet from '@/components/StopDetailSheet';
 import SpeedIndicator from '@/components/SpeedIndicator';
 import ETADisplay from '@/components/ETADisplay';
+import ParentNotification from '@/components/ParentNotification';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useETACalculation } from '@/hooks/useETACalculation';
+import { useProximityAlerts } from '@/hooks/useProximityAlerts';
 import { useToast } from '@/hooks/use-toast';
 import { MOCK_ROUTE } from '@/data/mockRoute';
 import { RouteData, Stop, Student, IncidentType, INCIDENT_CONFIG } from '@/types/route';
+
+interface NotificationData {
+  stopName: string;
+  distance: number;
+  etaMinutes: number;
+  studentCount: number;
+}
 
 const Index = () => {
   const { coordinates, speed, heading, error: geoError } = useGeolocation();
@@ -18,6 +27,7 @@ const Index = () => {
   const [route, setRoute] = useState<RouteData>(MOCK_ROUTE);
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
   const [isStopSheetOpen, setIsStopSheetOpen] = useState(false);
+  const [activeNotification, setActiveNotification] = useState<NotificationData | null>(null);
 
   // ETA calculation
   const { nextStopETA, stopETAs } = useETACalculation(
@@ -27,8 +37,31 @@ const Index = () => {
     route.currentStopIndex
   );
 
-  // Get next stop name
+  // Get next stop
   const nextStop = route.stops[route.currentStopIndex];
+
+  // Handle parent notification when bus is within 5km
+  const handleProximityNotification = useCallback((stopName: string, distance: number, etaMinutes: number) => {
+    const stop = route.stops.find(s => s.name === stopName);
+    const studentCount = stop?.students.length || 0;
+
+    setActiveNotification({
+      stopName,
+      distance,
+      etaMinutes,
+      studentCount,
+    });
+  }, [route.stops]);
+
+  // Proximity alerts hook
+  useProximityAlerts(
+    coordinates,
+    speed,
+    route.stops,
+    route.currentStopIndex,
+    route.status === 'in_progress',
+    handleProximityNotification
+  );
 
   // Handle start route
   const handleStartRoute = useCallback(() => {
@@ -203,6 +236,17 @@ const Index = () => {
         onClose={() => setIsStopSheetOpen(false)}
         onStudentAction={handleStudentAction}
       />
+
+      {/* Parent Notification Popup */}
+      {activeNotification && (
+        <ParentNotification
+          stopName={activeNotification.stopName}
+          distance={activeNotification.distance}
+          etaMinutes={activeNotification.etaMinutes}
+          studentCount={activeNotification.studentCount}
+          onClose={() => setActiveNotification(null)}
+        />
+      )}
     </div>
   );
 };
