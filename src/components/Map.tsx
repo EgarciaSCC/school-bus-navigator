@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN, MAPBOX_STYLE } from '@/config/mapbox';
 import { Stop } from '@/types/route';
 import { useMapboxDirections } from '@/hooks/useMapboxDirections';
+import { useRouteDeviation } from '@/hooks/useRouteDeviation';
 import busFrontImage from '@/assets/bus-front.png';
 
 interface MapProps {
@@ -13,6 +14,7 @@ interface MapProps {
   onStopClick?: (stop: Stop) => void;
   isNavigating?: boolean;
   heading?: number | null;
+  onRouteRecalculated?: () => void;
 }
 
 const Map: React.FC<MapProps> = ({ 
@@ -21,7 +23,8 @@ const Map: React.FC<MapProps> = ({
   currentStopIndex, 
   onStopClick,
   isNavigating = false,
-  heading = null
+  heading = null,
+  onRouteRecalculated
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -30,6 +33,23 @@ const Map: React.FC<MapProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   
   const { routeCoordinates, fetchRoute, isLoading: isRouteLoading } = useMapboxDirections();
+
+  // Get remaining stops for recalculation
+  const remainingStops = useMemo(() => {
+    return stops.slice(currentStopIndex).map(s => s.coordinates);
+  }, [stops, currentStopIndex]);
+
+  // Route deviation detection
+  const { isOffRoute, isRecalculating } = useRouteDeviation(
+    userLocation,
+    routeCoordinates,
+    isNavigating,
+    remainingStops,
+    async (waypoints) => {
+      await fetchRoute(waypoints);
+      onRouteRecalculated?.();
+    }
+  );
 
   // Create bus marker element
   const createBusMarkerElement = useCallback(() => {
@@ -293,6 +313,21 @@ const Map: React.FC<MapProps> = ({
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
           <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-medium text-grey-700">Calculando ruta óptima...</span>
+        </div>
+      )}
+
+      {/* Route recalculation indicator */}
+      {isRecalculating && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-yellow-50 border border-yellow-300 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium text-yellow-700">Recalculando ruta...</span>
+        </div>
+      )}
+
+      {/* Off-route warning */}
+      {isOffRoute && !isRecalculating && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-red-50 border border-red-300 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <span className="text-sm font-medium text-red-700">⚠️ Fuera de ruta</span>
         </div>
       )}
     </div>

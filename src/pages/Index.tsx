@@ -98,6 +98,14 @@ const Index = () => {
     });
   }, [toast]);
 
+  // Handle route recalculation notification
+  const handleRouteRecalculated = useCallback(() => {
+    toast({
+      title: '🔄 Ruta Recalculada',
+      description: 'Se ha encontrado una nueva ruta óptima',
+    });
+  }, [toast]);
+
   // Handle stop selection
   const handleStopSelect = useCallback((stop: Stop, index: number) => {
     setSelectedStop(stop);
@@ -153,6 +161,7 @@ const Index = () => {
           onStopClick={(stop) => handleStopSelect(stop, route.stops.findIndex(s => s.id === stop.id))}
           isNavigating={route.status === 'in_progress'}
           heading={heading}
+          onRouteRecalculated={handleRouteRecalculated}
         />
 
         {/* Speed Indicator */}
