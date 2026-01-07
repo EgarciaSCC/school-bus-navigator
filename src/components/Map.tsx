@@ -31,8 +31,18 @@ const Map: React.FC<MapProps> = ({
   const userMarker = useRef<mapboxgl.Marker | null>(null);
   const stopMarkers = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [approachRouteFetched, setApproachRouteFetched] = useState(false);
   
+  // Main school route
   const { routeCoordinates, fetchRoute, isLoading: isRouteLoading } = useMapboxDirections();
+  
+  // Approach route (driver location to first stop)
+  const { 
+    routeCoordinates: approachRouteCoordinates, 
+    fetchRoute: fetchApproachRoute, 
+    isLoading: isApproachRouteLoading,
+    distance: approachDistance 
+  } = useMapboxDirections();
 
   // Get remaining stops for recalculation
   const remainingStops = useMemo(() => {
@@ -174,6 +184,24 @@ const Map: React.FC<MapProps> = ({
     }
   }, [stops, mapLoaded, fetchRoute]);
 
+  // Fetch approach route (from driver location to first stop) - only before route starts
+  useEffect(() => {
+    if (!mapLoaded || !userLocation || stops.length === 0 || isNavigating || approachRouteFetched) return;
+    
+    const firstStop = stops[0];
+    
+    // Only fetch if driver is more than 100m from first stop
+    const distance = Math.sqrt(
+      Math.pow(userLocation[0] - firstStop.coordinates[0], 2) +
+      Math.pow(userLocation[1] - firstStop.coordinates[1], 2)
+    ) * 111000; // rough conversion to meters
+    
+    if (distance > 100) {
+      fetchApproachRoute([userLocation, firstStop.coordinates]);
+      setApproachRouteFetched(true);
+    }
+  }, [mapLoaded, userLocation, stops, isNavigating, fetchApproachRoute, approachRouteFetched]);
+
   // Update user location marker with bus icon
   useEffect(() => {
     if (!map.current || !userLocation) return;
@@ -249,7 +277,68 @@ const Map: React.FC<MapProps> = ({
     }
   }, [stops, currentStopIndex, createStopMarkerElement, mapLoaded, isNavigating]);
 
-  // Draw route line from Directions API
+  // Draw approach route (driver to first stop) in secondary color
+  useEffect(() => {
+    if (!map.current || !mapLoaded || isNavigating) return;
+
+    const sourceId = 'approach-route';
+    const outlineId = 'approach-route-outline';
+    const lineId = 'approach-route-line';
+
+    // Remove approach route when navigating starts
+    if (isNavigating) {
+      if (map.current.getLayer(lineId)) map.current.removeLayer(lineId);
+      if (map.current.getLayer(outlineId)) map.current.removeLayer(outlineId);
+      if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+      return;
+    }
+
+    if (!approachRouteCoordinates || approachRouteCoordinates.length < 2) return;
+
+    if (map.current.getSource(sourceId)) {
+      (map.current.getSource(sourceId) as mapboxgl.GeoJSONSource).setData({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: approachRouteCoordinates },
+      });
+    } else {
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: approachRouteCoordinates },
+        },
+      });
+
+      // Approach route outline (white border)
+      map.current.addLayer({
+        id: outlineId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 10,
+        },
+      });
+
+      // Approach route line (secondary/yellow color with dashed pattern)
+      map.current.addLayer({
+        id: lineId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#FFD166', // secondary yellow
+          'line-width': 6,
+          'line-dasharray': [2, 1],
+        },
+      });
+    }
+  }, [approachRouteCoordinates, mapLoaded, isNavigating]);
+
+  // Draw main route line from Directions API
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
@@ -290,7 +379,7 @@ const Map: React.FC<MapProps> = ({
         },
       });
 
-      // Route line (purple gradient effect)
+      // Route line (purple/primary color)
       map.current.addLayer({
         id: lineId,
         type: 'line',
@@ -309,10 +398,12 @@ const Map: React.FC<MapProps> = ({
       <div ref={mapContainer} className="absolute inset-0" />
       
       {/* Route loading indicator */}
-      {isRouteLoading && (
+      {(isRouteLoading || isApproachRouteLoading) && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
           <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-medium text-grey-700">Calculando ruta óptima...</span>
+          <span className="text-sm font-medium text-grey-700">
+            {isApproachRouteLoading ? 'Calculando ruta al punto de inicio...' : 'Calculando ruta óptima...'}
+          </span>
         </div>
       )}
 
