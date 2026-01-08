@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import Map from '@/components/Map';
 import RoutePanel from '@/components/RoutePanel';
 import ActionBar from '@/components/ActionBar';
@@ -29,6 +30,7 @@ const Index = () => {
   const [isStopSheetOpen, setIsStopSheetOpen] = useState(false);
   const [activeNotification, setActiveNotification] = useState<NotificationData | null>(null);
   const [isOffRoute, setIsOffRoute] = useState(false);
+  const [isPanelVisible, setIsPanelVisible] = useState(true);
 
   // Smart ETA calculation using Mapbox with intelligent update conditions
   const { nextStopETA, stopETAs } = useSmartETA(
@@ -186,12 +188,27 @@ const Index = () => {
   return (
     <div className="h-screen w-screen flex overflow-hidden">
       {/* Left Panel - Route Info */}
-      <div className="w-80 shrink-0 border-r border-border shadow-lg z-20">
-        <RoutePanel 
-          route={route} 
-          onStopSelect={handleStopSelect}
-        />
-      </div>
+      {isPanelVisible && (
+        <div className="w-80 shrink-0 border-r border-border shadow-lg z-20">
+          <RoutePanel 
+            route={route} 
+            onStopSelect={handleStopSelect}
+          />
+        </div>
+      )}
+
+      {/* Toggle Panel Button */}
+      <button
+        onClick={() => setIsPanelVisible(!isPanelVisible)}
+        className="absolute top-4 left-4 z-30 bg-card shadow-lg rounded-lg p-2 hover:bg-muted transition-colors border border-border"
+        style={{ left: isPanelVisible ? 'calc(20rem + 1rem)' : '1rem' }}
+      >
+        {isPanelVisible ? (
+          <PanelLeftClose className="w-5 h-5 text-foreground" />
+        ) : (
+          <PanelLeft className="w-5 h-5 text-foreground" />
+        )}
+      </button>
 
       {/* Map Area */}
       <div className="flex-1 relative">
@@ -211,7 +228,7 @@ const Index = () => {
 
         {/* ETA Display - Only show when navigating */}
         {route.status === 'in_progress' && nextStopETA && nextStop && (
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-4 left-4 z-10" style={{ left: isPanelVisible ? 'calc(20rem + 4rem)' : '4rem' }}>
             <ETADisplay
               distanceRemaining={nextStopETA.distanceRemaining}
               etaMinutes={nextStopETA.etaMinutes}
@@ -244,6 +261,7 @@ const Index = () => {
         open={isStopSheetOpen}
         onClose={() => setIsStopSheetOpen(false)}
         onStudentAction={handleStudentAction}
+        routeDirection={route.direction}
       />
 
       {/* Parent Notification Popup */}
