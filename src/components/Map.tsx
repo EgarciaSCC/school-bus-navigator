@@ -5,7 +5,7 @@ import { MAPBOX_TOKEN, MAPBOX_STYLE } from '@/config/mapbox';
 import { Stop } from '@/types/route';
 import { useMapboxDirections } from '@/hooks/useMapboxDirections';
 import { useRouteDeviation } from '@/hooks/useRouteDeviation';
-import busFrontImage from '@/assets/bus-front.png';
+import { getBusImageForHeading, getBusRotationOffset } from '@/utils/busDirectionImage';
 
 interface MapProps {
   userLocation: [number, number] | null;
@@ -15,6 +15,7 @@ interface MapProps {
   isNavigating?: boolean;
   heading?: number | null;
   onRouteRecalculated?: () => void;
+  isOffRoute?: boolean;
 }
 
 const Map: React.FC<MapProps> = ({ 
@@ -24,7 +25,8 @@ const Map: React.FC<MapProps> = ({
   onStopClick,
   isNavigating = false,
   heading = null,
-  onRouteRecalculated
+  onRouteRecalculated,
+  isOffRoute: externalIsOffRoute
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -61,13 +63,16 @@ const Map: React.FC<MapProps> = ({
     }
   );
 
-  // Create bus marker element
-  const createBusMarkerElement = useCallback(() => {
+  // Track last heading for image selection
+  const lastHeadingRef = useRef<number | null>(null);
+
+  // Create bus marker element with direction-aware image
+  const createBusMarkerElement = useCallback((currentHeading: number | null) => {
     const el = document.createElement('div');
     el.className = 'bus-marker';
     el.style.cssText = `
-      width: 60px;
-      height: 60px;
+      width: 80px;
+      height: 80px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -75,14 +80,20 @@ const Map: React.FC<MapProps> = ({
     `;
     
     const img = document.createElement('img');
-    img.src = busFrontImage;
+    img.src = getBusImageForHeading(currentHeading);
     img.alt = 'Bus';
+    img.className = 'bus-image';
     img.style.cssText = `
       width: 100%;
       height: 100%;
       object-fit: contain;
       filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      transition: transform 0.3s ease-out;
     `;
+    
+    // Apply fine rotation offset
+    const rotationOffset = getBusRotationOffset(currentHeading);
+    img.style.transform = `rotate(${rotationOffset}deg)`;
     
     el.appendChild(img);
     return el;
@@ -202,21 +213,50 @@ const Map: React.FC<MapProps> = ({
     }
   }, [mapLoaded, userLocation, stops, isNavigating, fetchApproachRoute, approachRouteFetched]);
 
-  // Update user location marker with bus icon
+  // Update user location marker with bus icon and direction-aware image
   useEffect(() => {
     if (!map.current || !userLocation) return;
+
+    // Check if heading changed significantly (need new image)
+    const headingChanged = heading !== null && (
+      lastHeadingRef.current === null ||
+      Math.abs(heading - lastHeadingRef.current) >= 22.5
+    );
 
     if (userMarker.current) {
       userMarker.current.setLngLat(userLocation);
       
-      // Rotate bus based on heading
-      if (heading !== null) {
+      // Update bus image when heading changes direction bracket
+      if (headingChanged && heading !== null) {
         const el = userMarker.current.getElement();
-        el.style.transform = `rotate(${heading}deg)`;
+        const img = el.querySelector('.bus-image') as HTMLImageElement;
+        
+        if (img) {
+          // Update image source for new direction
+          const newImageSrc = getBusImageForHeading(heading);
+          if (img.src !== newImageSrc) {
+            img.src = newImageSrc;
+          }
+          
+          // Apply fine rotation offset within the 45-degree bracket
+          const rotationOffset = getBusRotationOffset(heading);
+          img.style.transform = `rotate(${rotationOffset}deg)`;
+        }
+        
+        lastHeadingRef.current = heading;
+      } else if (heading !== null) {
+        // Just update the fine rotation offset
+        const el = userMarker.current.getElement();
+        const img = el.querySelector('.bus-image') as HTMLImageElement;
+        if (img) {
+          const rotationOffset = getBusRotationOffset(heading);
+          img.style.transform = `rotate(${rotationOffset}deg)`;
+        }
       }
     } else {
+      lastHeadingRef.current = heading;
       userMarker.current = new mapboxgl.Marker({
-        element: createBusMarkerElement(),
+        element: createBusMarkerElement(heading),
         rotationAlignment: 'map',
         pitchAlignment: 'map',
       })
@@ -416,7 +456,7 @@ const Map: React.FC<MapProps> = ({
       )}
 
       {/* Off-route warning */}
-      {isOffRoute && !isRecalculating && (
+      {(isOffRoute || externalIsOffRoute) && !isRecalculating && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-red-50 border border-red-300 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
           <span className="text-sm font-medium text-red-700">⚠️ Fuera de ruta</span>
         </div>

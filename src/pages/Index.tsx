@@ -7,7 +7,7 @@ import SpeedIndicator from '@/components/SpeedIndicator';
 import ETADisplay from '@/components/ETADisplay';
 import ParentNotification from '@/components/ParentNotification';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { useETACalculation } from '@/hooks/useETACalculation';
+import { useSmartETA } from '@/hooks/useSmartETA';
 import { useProximityAlerts } from '@/hooks/useProximityAlerts';
 import { useToast } from '@/hooks/use-toast';
 import { MOCK_ROUTE } from '@/data/mockRoute';
@@ -28,13 +28,15 @@ const Index = () => {
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
   const [isStopSheetOpen, setIsStopSheetOpen] = useState(false);
   const [activeNotification, setActiveNotification] = useState<NotificationData | null>(null);
+  const [isOffRoute, setIsOffRoute] = useState(false);
 
-  // ETA calculation
-  const { nextStopETA, stopETAs } = useETACalculation(
+  // Smart ETA calculation using Mapbox with intelligent update conditions
+  const { nextStopETA, stopETAs } = useSmartETA(
     coordinates,
-    speed,
     route.stops,
-    route.currentStopIndex
+    route.currentStopIndex,
+    route.status === 'in_progress',
+    isOffRoute
   );
 
   // Get next stop
@@ -133,11 +135,17 @@ const Index = () => {
 
   // Handle route recalculation notification
   const handleRouteRecalculated = useCallback(() => {
+    setIsOffRoute(false);
     toast({
       title: '🔄 Ruta Recalculada',
       description: 'Se ha encontrado una nueva ruta óptima',
     });
   }, [toast]);
+
+  // Handle off-route detection
+  const handleOffRoute = useCallback((offRoute: boolean) => {
+    setIsOffRoute(offRoute);
+  }, []);
 
   // Handle stop selection
   const handleStopSelect = useCallback((stop: Stop, index: number) => {
@@ -195,6 +203,7 @@ const Index = () => {
           isNavigating={route.status === 'in_progress'}
           heading={heading}
           onRouteRecalculated={handleRouteRecalculated}
+          isOffRoute={isOffRoute}
         />
 
         {/* Speed Indicator */}
