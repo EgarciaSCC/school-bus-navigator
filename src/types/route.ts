@@ -22,6 +22,7 @@ export interface RouteData {
   estimatedEndTime: string;
   currentStopIndex: number;
   status: 'not_started' | 'in_progress' | 'completed';
+  direction: 'outbound' | 'return'; // ida o regreso
 }
 
 export type IncidentType = 

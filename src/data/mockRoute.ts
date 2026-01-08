@@ -7,10 +7,7 @@ export const MOCK_STOPS: Stop[] = [
     name: 'Colegio San Rafael',
     address: 'Cra 7 #45-10, Chapinero',
     coordinates: [-74.0608, 4.6351],
-    students: [
-      { id: 's1', name: 'María García', status: 'waiting' },
-      { id: 's2', name: 'Juan Pérez', status: 'waiting' },
-    ],
+    students: [], // Primera parada sin estudiantes
     status: 'pending',
   },
   {
@@ -68,4 +65,5 @@ export const MOCK_ROUTE: RouteData = {
   estimatedEndTime: '08:00',
   currentStopIndex: 0,
   status: 'not_started',
+  direction: 'outbound', // Ruta de ida
 };
