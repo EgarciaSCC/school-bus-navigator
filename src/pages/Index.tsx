@@ -200,8 +200,9 @@ const Index = () => {
       {/* Toggle Panel Button */}
       <button
         onClick={() => setIsPanelVisible(!isPanelVisible)}
-        className="absolute top-4 left-4 z-30 bg-card shadow-lg rounded-lg p-2 hover:bg-muted transition-colors border border-border"
-        style={{ left: isPanelVisible ? 'calc(20rem + 1rem)' : '1rem' }}
+        className={`absolute z-30 bg-card shadow-lg rounded-lg p-2 hover:bg-muted transition-all duration-300 border border-border ${
+          isPanelVisible ? 'top-4 left-[calc(20rem+1rem)]' : 'top-[4.5rem] left-4 sm:top-4'
+        }`}
       >
         {isPanelVisible ? (
           <PanelLeftClose className="w-5 h-5 text-foreground" />
@@ -223,17 +224,32 @@ const Index = () => {
           isOffRoute={isOffRoute}
         />
 
-        {/* Speed Indicator */}
-        <SpeedIndicator speed={speed} heading={heading} />
+        {/* Speed Indicator - positioned based on panel visibility */}
+        <div className={`absolute top-4 z-10 transition-all duration-300 ${
+          isPanelVisible 
+            ? 'left-4' 
+            : 'left-14 sm:left-16'
+        }`}>
+          <SpeedIndicator 
+            speed={speed} 
+            heading={heading} 
+            compact={!isPanelVisible}
+          />
+        </div>
 
         {/* ETA Display - Only show when navigating */}
         {route.status === 'in_progress' && nextStopETA && nextStop && (
-          <div className="absolute top-4 left-4 z-10" style={{ left: isPanelVisible ? 'calc(20rem + 4rem)' : '4rem' }}>
+          <div className={`absolute top-4 z-10 transition-all duration-300 ${
+            isPanelVisible 
+              ? 'left-[calc(1rem+5rem+1rem)] sm:left-[calc(1rem+6rem+1rem)]'
+              : 'right-4'
+          }`}>
             <ETADisplay
               distanceRemaining={nextStopETA.distanceRemaining}
               etaMinutes={nextStopETA.etaMinutes}
               etaTime={nextStopETA.etaTime}
               stopName={nextStop.name}
+              compact={!isPanelVisible}
             />
           </div>
         )}
