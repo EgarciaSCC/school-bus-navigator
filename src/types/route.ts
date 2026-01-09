@@ -28,8 +28,9 @@ export interface RouteData {
 export type IncidentType = 
   | 'high_traffic'
   | 'road_closed'
-  | 'forced_detour'
   | 'breakdown'
+  | 'weather'
+  | 'custom'
   | 'stop_completed'
   | 'student_picked'
   | 'student_dropped'
@@ -46,8 +47,9 @@ export interface Incident {
 export const INCIDENT_CONFIG: Record<IncidentType, { label: string; icon: string; color: string }> = {
   high_traffic: { label: 'Tráfico Alto', icon: 'AlertTriangle', color: 'yellow' },
   road_closed: { label: 'Vía Cerrada', icon: 'XCircle', color: 'red' },
-  forced_detour: { label: 'Desvío Forzoso', icon: 'GitBranch', color: 'purple' },
-  breakdown: { label: 'Avería', icon: 'Wrench', color: 'grey' },
+  breakdown: { label: 'Bus Averiado', icon: 'Wrench', color: 'grey' },
+  weather: { label: 'Clima Adverso', icon: 'CloudRain', color: 'blue' },
+  custom: { label: 'Novedad Personalizada', icon: 'MessageSquare', color: 'purple' },
   stop_completed: { label: 'Parada Completada', icon: 'CheckCircle', color: 'green' },
   student_picked: { label: 'Estudiante Recogido', icon: 'UserPlus', color: 'green' },
   student_dropped: { label: 'Estudiante Dejado', icon: 'UserMinus', color: 'blue' },
