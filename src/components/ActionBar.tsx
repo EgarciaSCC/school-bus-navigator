@@ -106,7 +106,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
 
             {/* Incident Menu Popup */}
             {showIncidentMenu && (
-              <div className="absolute bottom-14 right-0 bg-card rounded-xl shadow-xl border border-border p-2 min-w-[160px] animate-in slide-in-from-bottom-2 duration-200">
+              <div className="absolute bottom-16 right-0 z-50 bg-card rounded-xl shadow-2xl border border-border p-2 min-w-[180px] animate-in slide-in-from-bottom-2 duration-200">
                 <p className="text-xs font-semibold text-muted-foreground px-2 py-1 mb-1">
                   Reportar Novedad
                 </p>
@@ -118,8 +118,8 @@ const ActionBar: React.FC<ActionBarProps> = ({
                       setShowIncidentMenu(false);
                     }}
                     className={`
-                      w-full flex items-center gap-2 px-3 py-2 rounded-lg
-                      text-sm font-medium transition-colors ${option.bgClass}
+                      w-full flex items-center gap-2 px-3 py-2.5 rounded-lg
+                      text-sm font-medium transition-colors mb-1 last:mb-0 ${option.bgClass}
                     `}
                   >
                     <option.icon className="w-4 h-4" />
