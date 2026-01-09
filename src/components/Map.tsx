@@ -169,10 +169,34 @@ const Map: React.FC<MapProps> = ({
 
     map.current.on('load', () => {
       setMapLoaded(true);
-    });
-
-    map.current.on('style.load', () => {
-      setMapLoaded(true);
+      
+      // Add traffic layer from Mapbox
+      if (map.current) {
+        map.current.addSource('mapbox-traffic', {
+          type: 'vector',
+          url: 'mapbox://mapbox.mapbox-traffic-v1'
+        });
+        
+        map.current.addLayer({
+          id: 'traffic-layer',
+          type: 'line',
+          source: 'mapbox-traffic',
+          'source-layer': 'traffic',
+          paint: {
+            'line-width': 2,
+            'line-color': [
+              'match',
+              ['get', 'congestion'],
+              'low', '#4ade80',
+              'moderate', '#facc15',
+              'heavy', '#f97316',
+              'severe', '#ef4444',
+              '#94a3b8'
+            ],
+            'line-opacity': 0.75
+          }
+        });
+      }
     });
 
     // Fallback timeout

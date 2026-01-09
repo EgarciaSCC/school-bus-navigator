@@ -77,6 +77,9 @@ const Index = () => {
       ),
     }));
     
+    // Auto-hide panel when route starts
+    setIsPanelVisible(false);
+    
     toast({
       title: '🚌 Ruta Iniciada',
       description: `${route.name} - ${route.stops.length} paradas`,
@@ -197,11 +200,11 @@ const Index = () => {
         </div>
       )}
 
-      {/* Toggle Panel Button */}
+      {/* Toggle Panel Button - positioned at panel edge */}
       <button
         onClick={() => setIsPanelVisible(!isPanelVisible)}
-        className={`absolute z-30 bg-card shadow-lg rounded-lg p-2 hover:bg-muted transition-all duration-300 border border-border ${
-          isPanelVisible ? 'top-4 left-[calc(20rem+1rem)]' : 'top-[4.5rem] left-4 sm:top-4'
+        className={`absolute z-30 bg-card shadow-lg rounded-r-lg p-2 hover:bg-muted transition-all duration-300 border border-l-0 border-border top-1/2 -translate-y-1/2 ${
+          isPanelVisible ? 'left-80' : 'left-0 rounded-l-lg border-l'
         }`}
       >
         {isPanelVisible ? (

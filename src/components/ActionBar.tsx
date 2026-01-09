@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import {
   AlertTriangle,
   XCircle,
-  GitBranch,
   Wrench,
   CheckCircle,
   Flag,
   Play,
   Plus,
   X,
+  CloudRain,
+  MessageSquare,
 } from 'lucide-react';
 import { IncidentType } from '@/types/route';
 
@@ -55,14 +56,15 @@ const ActionBar: React.FC<ActionBarProps> = ({
   }
 
   const incidentOptions = [
-    { type: 'high_traffic' as IncidentType, icon: AlertTriangle, label: 'Tráfico', bgClass: 'bg-yellow-100 text-yellow-900 hover:bg-yellow-200' },
+    { type: 'high_traffic' as IncidentType, icon: AlertTriangle, label: 'Tráfico Alto', bgClass: 'bg-yellow-100 text-yellow-900 hover:bg-yellow-200' },
     { type: 'road_closed' as IncidentType, icon: XCircle, label: 'Vía Cerrada', bgClass: 'bg-red-100 text-red-900 hover:bg-red-200' },
-    { type: 'forced_detour' as IncidentType, icon: GitBranch, label: 'Desvío', bgClass: 'bg-purple-100 text-purple-900 hover:bg-purple-200' },
-    { type: 'breakdown' as IncidentType, icon: Wrench, label: 'Avería', bgClass: 'bg-gray-100 text-gray-900 hover:bg-gray-200' },
+    { type: 'breakdown' as IncidentType, icon: Wrench, label: 'Bus Averiado', bgClass: 'bg-gray-100 text-gray-900 hover:bg-gray-200' },
+    { type: 'weather' as IncidentType, icon: CloudRain, label: 'Clima Adverso', bgClass: 'bg-blue-100 text-blue-900 hover:bg-blue-200' },
+    { type: 'custom' as IncidentType, icon: MessageSquare, label: 'Personalizada', bgClass: 'bg-purple-100 text-purple-900 hover:bg-purple-200' },
   ];
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 max-w-4xl w-full px-4">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[85%] max-w-3xl px-4">
       <div className="panel-card p-3">
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {/* Primary Actions */}
