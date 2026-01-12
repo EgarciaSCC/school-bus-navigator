@@ -196,6 +196,7 @@ const Index = () => {
           <RoutePanel 
             route={route} 
             onStopSelect={handleStopSelect}
+            onStartRoute={handleStartRoute}
           />
         </div>
       )}

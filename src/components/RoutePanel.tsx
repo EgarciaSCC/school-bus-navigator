@@ -1,15 +1,17 @@
 import React from 'react';
-import { Clock, MapPin, Users, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play } from 'lucide-react';
 import { RouteData, Stop } from '@/types/route';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import isotipoNCA from '@/assets/isotipo-NCA.png';
 
 interface RoutePanelProps {
   route: RouteData;
   onStopSelect: (stop: Stop, index: number) => void;
+  onStartRoute?: () => void;
 }
 
-const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect }) => {
+const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute }) => {
   const completedStops = route.stops.filter(s => s.status === 'completed').length;
   const totalStudents = route.stops.reduce((acc, s) => acc + s.students.length, 0);
   const pickedStudents = route.stops.reduce(
@@ -98,6 +100,20 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect }) => {
           })}
         </div>
       </ScrollArea>
+
+      {/* Start Route Button - Only show when route is pending */}
+      {route.status === 'not_started' && onStartRoute && (
+        <div className="p-4 border-t border-border">
+          <Button
+            onClick={onStartRoute}
+            className="w-full h-12 text-base font-semibold gap-2"
+            size="lg"
+          >
+            <Play className="w-5 h-5" />
+            Iniciar Ruta
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
