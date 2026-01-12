@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play } from 'lucide-react';
+import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus } from 'lucide-react';
 import { RouteData, Stop } from '@/types/route';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,10 @@ interface RoutePanelProps {
   route: RouteData;
   onStopSelect: (stop: Stop, index: number) => void;
   onStartRoute?: () => void;
+  onAddStop?: () => void;
 }
 
-const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute }) => {
+const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute, onAddStop }) => {
   const completedStops = route.stops.filter(s => s.status === 'completed').length;
   const totalStudents = route.stops.reduce((acc, s) => acc + s.students.length, 0);
   const pickedStudents = route.stops.reduce(
@@ -59,9 +60,22 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
 
       {/* Stops List */}
       <ScrollArea className="flex-1 p-4">
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-          Paradas de la Ruta
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Paradas de la Ruta
+          </h2>
+          {onAddStop && route.status === 'not_started' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onAddStop}
+              className="h-7 text-xs gap-1"
+            >
+              <Plus className="w-3 h-3" />
+              Nueva
+            </Button>
+          )}
+        </div>
         <div className="space-y-2">
           {route.stops.map((stop, index) => {
             const isActive = index === route.currentStopIndex && route.status === 'in_progress';
