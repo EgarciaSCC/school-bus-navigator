@@ -213,7 +213,7 @@ const Index = () => {
     <div className="h-screen w-screen flex overflow-hidden">
       {/* Left Panel - Route Info */}
       {isPanelVisible && (
-        <div className="w-80 shrink-0 border-r border-border shadow-lg z-20">
+        <div className="w-96 shrink-0 border-r border-border shadow-lg z-20">
           <RoutePanel 
             route={route} 
             onStopSelect={handleStopSelect}
@@ -227,7 +227,7 @@ const Index = () => {
       <button
         onClick={() => setIsPanelVisible(!isPanelVisible)}
         className={`absolute z-30 bg-card shadow-lg rounded-r-lg p-2 hover:bg-muted transition-all duration-300 border border-l-0 border-border top-1/2 -translate-y-1/2 ${
-          isPanelVisible ? 'left-80' : 'left-0 rounded-l-lg border-l'
+          isPanelVisible ? 'left-96' : 'left-0 rounded-l-lg border-l'
         }`}
       >
         {isPanelVisible ? (
