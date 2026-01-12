@@ -213,22 +213,31 @@ const Index = () => {
     <div className="h-screen w-screen flex overflow-hidden">
       {/* Left Panel - Route Info */}
       {isPanelVisible && (
-        <div className="w-96 shrink-0 border-r border-border shadow-lg z-20">
+        <div className="w-full sm:w-80 md:w-96 shrink-0 border-r border-border shadow-lg z-20 absolute sm:relative inset-0 sm:inset-auto bg-card">
           <RoutePanel 
             route={route} 
             onStopSelect={handleStopSelect}
             onStartRoute={handleStartRoute}
             onAddStop={() => setIsAddStopModalOpen(true)}
           />
+          {/* Close button for mobile - inside panel */}
+          <button
+            onClick={() => setIsPanelVisible(false)}
+            className="sm:hidden absolute top-4 right-4 z-40 bg-muted/80 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-muted transition-colors"
+          >
+            <PanelLeftClose className="w-5 h-5 text-foreground" />
+          </button>
         </div>
       )}
 
-      {/* Toggle Panel Button - positioned at panel edge */}
+      {/* Toggle Panel Button - Desktop: at panel edge, Mobile: floating */}
       <button
         onClick={() => setIsPanelVisible(!isPanelVisible)}
-        className={`absolute z-30 bg-card shadow-lg rounded-r-lg p-2 hover:bg-muted transition-all duration-300 border border-l-0 border-border top-1/2 -translate-y-1/2 ${
-          isPanelVisible ? 'left-96' : 'left-0 rounded-l-lg border-l'
-        }`}
+        className={`absolute z-30 bg-card shadow-lg p-2.5 hover:bg-muted transition-all duration-300 border border-border
+          ${isPanelVisible 
+            ? 'hidden sm:flex sm:left-80 md:left-96 sm:rounded-r-lg sm:border-l-0 sm:top-1/2 sm:-translate-y-1/2' 
+            : 'left-4 top-4 rounded-lg sm:left-0 sm:top-1/2 sm:-translate-y-1/2 sm:rounded-r-lg sm:border-l-0'
+          }`}
       >
         {isPanelVisible ? (
           <PanelLeftClose className="w-5 h-5 text-foreground" />
