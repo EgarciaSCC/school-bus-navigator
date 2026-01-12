@@ -71,7 +71,7 @@ const Map: React.FC<MapProps> = ({
   const turnAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Navigation zoom and bus marker size constants
-  const NAVIGATION_ZOOM = 19.5; // 15% increase from base zoom 17
+  const NAVIGATION_ZOOM = 25.5; // 25% increase from base zoom 17
   const BUS_MARKER_SIZE = 52; // 30% larger than 40px base
   const MAX_TILT_ANGLE = 15; // Maximum tilt angle in degrees for turns
 
