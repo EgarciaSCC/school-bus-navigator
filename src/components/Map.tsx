@@ -65,12 +65,31 @@ const Map: React.FC<MapProps> = ({
     }
   );
 
-  // Track last heading for image selection
+  // Track last heading for image selection and turn animation
   const lastHeadingRef = useRef<number | null>(null);
+  const turnAnimationRef = useRef<number>(0); // Current tilt angle
+  const turnAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Navigation zoom and bus marker size constants
   const NAVIGATION_ZOOM = 17;
   const BUS_MARKER_SIZE = 52; // 30% larger than 40px base
+  const MAX_TILT_ANGLE = 15; // Maximum tilt angle in degrees for turns
+
+  // Calculate turn direction and intensity (-1 to 1, negative = left, positive = right)
+  const calculateTurnIntensity = useCallback((prevHeading: number | null, currentHeading: number | null): number => {
+    if (prevHeading === null || currentHeading === null) return 0;
+    
+    // Calculate the shortest angle difference
+    let diff = currentHeading - prevHeading;
+    
+    // Normalize to -180 to 180
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    
+    // Clamp and normalize to -1 to 1
+    const intensity = Math.max(-1, Math.min(1, diff / 45));
+    return intensity;
+  }, []);
 
   // Create bus marker element with direction-aware image and 3D perspective
   const createBusMarkerElement = useCallback((currentHeading: number | null) => {
@@ -96,14 +115,15 @@ const Map: React.FC<MapProps> = ({
       height: 100%;
       object-fit: contain;
       filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
-      transition: transform 0.3s ease-out;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease-out;
       transform-style: preserve-3d;
       backface-visibility: hidden;
+      will-change: transform;
     `;
     
     // Apply fine rotation offset
     const rotationOffset = getBusRotationOffset(currentHeading);
-    img.style.transform = `rotate(${rotationOffset}deg)`;
+    img.style.transform = `rotate(${rotationOffset}deg) rotateY(0deg) rotateX(0deg)`;
     
     el.appendChild(img);
     return el;
@@ -265,7 +285,7 @@ const Map: React.FC<MapProps> = ({
     }
   }, [mapLoaded, userLocation, stops, isNavigating, fetchApproachRoute, approachRouteFetched]);
 
-  // Update user location marker with bus icon and direction-aware image
+  // Update user location marker with bus icon, direction-aware image, and turn animations
   useEffect(() => {
     if (!map.current || !userLocation) return;
 
@@ -278,32 +298,51 @@ const Map: React.FC<MapProps> = ({
     if (userMarker.current) {
       userMarker.current.setLngLat(userLocation);
       
-      // Update bus image when heading changes direction bracket
-      if (headingChanged && heading !== null) {
-        const el = userMarker.current.getElement();
-        const img = el.querySelector('.bus-image') as HTMLImageElement;
+      const el = userMarker.current.getElement();
+      const img = el.querySelector('.bus-image') as HTMLImageElement;
+      
+      if (img && heading !== null) {
+        // Calculate turn intensity for tilt animation
+        const turnIntensity = calculateTurnIntensity(lastHeadingRef.current, heading);
+        const tiltAngle = turnIntensity * MAX_TILT_ANGLE;
         
-        if (img) {
-          // Update image source for new direction
+        // Update image source if heading bracket changed
+        if (headingChanged) {
           const newImageSrc = getBusImageForHeading(heading);
           if (img.src !== newImageSrc) {
             img.src = newImageSrc;
           }
-          
-          // Apply fine rotation offset within the 45-degree bracket
-          const rotationOffset = getBusRotationOffset(heading);
-          img.style.transform = `rotate(${rotationOffset}deg)`;
         }
         
-        lastHeadingRef.current = heading;
-      } else if (heading !== null) {
-        // Just update the fine rotation offset
-        const el = userMarker.current.getElement();
-        const img = el.querySelector('.bus-image') as HTMLImageElement;
-        if (img) {
-          const rotationOffset = getBusRotationOffset(heading);
-          img.style.transform = `rotate(${rotationOffset}deg)`;
+        // Apply rotation with 3D tilt effect for turning
+        const rotationOffset = getBusRotationOffset(heading);
+        
+        // Tilt on Y axis for left/right lean, slight X tilt for depth effect
+        const yTilt = tiltAngle;
+        const xTilt = Math.abs(turnIntensity) * 5; // Slight forward lean when turning
+        
+        img.style.transform = `rotate(${rotationOffset}deg) rotateY(${yTilt}deg) rotateX(${xTilt}deg)`;
+        
+        // Enhanced shadow during turns for more realism
+        const shadowIntensity = 0.4 + Math.abs(turnIntensity) * 0.2;
+        const shadowOffset = 6 + Math.abs(turnIntensity) * 4;
+        img.style.filter = `drop-shadow(${tiltAngle * 0.3}px ${shadowOffset}px ${12 + Math.abs(tiltAngle)}px rgba(0,0,0,${shadowIntensity}))`;
+        
+        // Clear previous timeout and set new one to reset tilt
+        if (turnAnimationTimeoutRef.current) {
+          clearTimeout(turnAnimationTimeoutRef.current);
         }
+        
+        // Smoothly reset tilt after turn completes
+        turnAnimationTimeoutRef.current = setTimeout(() => {
+          if (img) {
+            const currentRotation = getBusRotationOffset(heading);
+            img.style.transform = `rotate(${currentRotation}deg) rotateY(0deg) rotateX(0deg)`;
+            img.style.filter = `drop-shadow(0 6px 12px rgba(0,0,0,0.4))`;
+          }
+        }, 600);
+        
+        lastHeadingRef.current = heading;
       }
     } else {
       lastHeadingRef.current = heading;
@@ -333,7 +372,7 @@ const Map: React.FC<MapProps> = ({
         duration: 1500,
       });
     }
-  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM]);
+  }, [userLocation, heading, isNavigating, createBusMarkerElement, calculateTurnIntensity, NAVIGATION_ZOOM, MAX_TILT_ANGLE]);
 
   // Update stop markers
   useEffect(() => {
