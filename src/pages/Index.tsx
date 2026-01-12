@@ -226,6 +226,7 @@ const Index = () => {
           heading={heading}
           onRouteRecalculated={handleRouteRecalculated}
           isOffRoute={isOffRoute}
+          onResize={isPanelVisible}
         />
 
         {/* Speed Indicator - positioned based on panel visibility */}
