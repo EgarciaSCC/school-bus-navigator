@@ -7,6 +7,7 @@ import StopDetailSheet from '@/components/StopDetailSheet';
 import SpeedIndicator from '@/components/SpeedIndicator';
 import ETADisplay from '@/components/ETADisplay';
 import ParentNotification from '@/components/ParentNotification';
+import AddStopModal from '@/components/AddStopModal';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useSmartETA } from '@/hooks/useSmartETA';
 import { useProximityAlerts } from '@/hooks/useProximityAlerts';
@@ -28,6 +29,7 @@ const Index = () => {
   const [route, setRoute] = useState<RouteData>(MOCK_ROUTE);
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
   const [isStopSheetOpen, setIsStopSheetOpen] = useState(false);
+  const [isAddStopModalOpen, setIsAddStopModalOpen] = useState(false);
   const [activeNotification, setActiveNotification] = useState<NotificationData | null>(null);
   const [isOffRoute, setIsOffRoute] = useState(false);
   const [isPanelVisible, setIsPanelVisible] = useState(true);
@@ -188,6 +190,25 @@ const Index = () => {
     });
   }, [toast]);
 
+  // Handle add new stop
+  const handleAddStop = useCallback((stopData: Omit<Stop, 'id' | 'status' | 'completedAt'>) => {
+    const newStop: Stop = {
+      ...stopData,
+      id: `stop-${Date.now()}`,
+      status: 'pending',
+    };
+
+    setRoute(prev => ({
+      ...prev,
+      stops: [...prev.stops, newStop],
+    }));
+
+    toast({
+      title: '📍 Nueva Parada Agregada',
+      description: `${newStop.name} - ${newStop.students.length} estudiante(s)`,
+    });
+  }, [toast]);
+
   return (
     <div className="h-screen w-screen flex overflow-hidden">
       {/* Left Panel - Route Info */}
@@ -197,6 +218,7 @@ const Index = () => {
             route={route} 
             onStopSelect={handleStopSelect}
             onStartRoute={handleStartRoute}
+            onAddStop={() => setIsAddStopModalOpen(true)}
           />
         </div>
       )}
@@ -283,6 +305,13 @@ const Index = () => {
         onClose={() => setIsStopSheetOpen(false)}
         onStudentAction={handleStudentAction}
         routeDirection={route.direction}
+      />
+
+      {/* Add Stop Modal */}
+      <AddStopModal
+        open={isAddStopModalOpen}
+        onClose={() => setIsAddStopModalOpen(false)}
+        onAddStop={handleAddStop}
       />
 
       {/* Parent Notification Popup */}
