@@ -68,17 +68,23 @@ const Map: React.FC<MapProps> = ({
   // Track last heading for image selection
   const lastHeadingRef = useRef<number | null>(null);
 
-  // Create bus marker element with direction-aware image
+  // Navigation zoom and bus marker size constants
+  const NAVIGATION_ZOOM = 17;
+  const BUS_MARKER_SIZE = 52; // 30% larger than 40px base
+
+  // Create bus marker element with direction-aware image and 3D perspective
   const createBusMarkerElement = useCallback((currentHeading: number | null) => {
     const el = document.createElement('div');
     el.className = 'bus-marker';
     el.style.cssText = `
-      width: 80px;
-      height: 80px;
+      width: ${BUS_MARKER_SIZE}px;
+      height: ${BUS_MARKER_SIZE}px;
       display: flex;
       align-items: center;
       justify-content: center;
       transform-origin: center center;
+      transform-style: preserve-3d;
+      perspective: 1000px;
     `;
     
     const img = document.createElement('img');
@@ -89,8 +95,10 @@ const Map: React.FC<MapProps> = ({
       width: 100%;
       height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
       transition: transform 0.3s ease-out;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
     `;
     
     // Apply fine rotation offset
@@ -301,8 +309,8 @@ const Map: React.FC<MapProps> = ({
       lastHeadingRef.current = heading;
       userMarker.current = new mapboxgl.Marker({
         element: createBusMarkerElement(heading),
-        rotationAlignment: 'map',
-        pitchAlignment: 'map',
+        rotationAlignment: 'viewport', // Keep marker oriented to viewport for better 3D effect
+        pitchAlignment: 'viewport',    // Marker stays upright when map is tilted
       })
         .setLngLat(userLocation)
         .addTo(map.current);
@@ -314,7 +322,7 @@ const Map: React.FC<MapProps> = ({
         center: userLocation,
         bearing: heading,
         pitch: 65,
-        zoom: 17,
+        zoom: NAVIGATION_ZOOM, // Closer zoom for navigation
         duration: 1000,
       });
     } else {
@@ -325,7 +333,7 @@ const Map: React.FC<MapProps> = ({
         duration: 1500,
       });
     }
-  }, [userLocation, heading, isNavigating, createBusMarkerElement]);
+  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM]);
 
   // Update stop markers
   useEffect(() => {
