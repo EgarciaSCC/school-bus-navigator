@@ -16,6 +16,7 @@ interface MapProps {
   heading?: number | null;
   onRouteRecalculated?: () => void;
   isOffRoute?: boolean;
+  onResize?: boolean; // Trigger resize when this prop changes
 }
 
 const Map: React.FC<MapProps> = ({ 
@@ -26,7 +27,8 @@ const Map: React.FC<MapProps> = ({
   isNavigating = false,
   heading = null,
   onRouteRecalculated,
-  isOffRoute: externalIsOffRoute
+  isOffRoute: externalIsOffRoute,
+  onResize
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -216,6 +218,18 @@ const Map: React.FC<MapProps> = ({
       map.current = null;
     };
   }, []);
+
+  // Handle map resize when panel visibility changes
+  useEffect(() => {
+    if (!map.current) return;
+    
+    // Small delay to allow CSS transition to complete
+    const timeoutId = setTimeout(() => {
+      map.current?.resize();
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [onResize]);
 
   // Fetch optimized route from Directions API
   useEffect(() => {
