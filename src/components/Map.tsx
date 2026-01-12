@@ -5,7 +5,7 @@ import { MAPBOX_TOKEN, MAPBOX_STYLE } from '@/config/mapbox';
 import { Stop } from '@/types/route';
 import { useMapboxDirections } from '@/hooks/useMapboxDirections';
 import { useRouteDeviation } from '@/hooks/useRouteDeviation';
-import { getBusImageForHeading, getBusRotationOffset } from '@/utils/busDirectionImage';
+import bus0 from '@/assets/bus-0.png';
 
 interface MapProps {
   userLocation: [number, number] | null;
@@ -65,34 +65,12 @@ const Map: React.FC<MapProps> = ({
     }
   );
 
-  // Track last heading for image selection and turn animation
-  const lastHeadingRef = useRef<number | null>(null);
-  const turnAnimationRef = useRef<number>(0); // Current tilt angle
-  const turnAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   // Navigation zoom and bus marker size constants
-  const NAVIGATION_ZOOM = 25.5; // 25% increase from base zoom 17
-  const BUS_MARKER_SIZE = 100; // 30% larger than 40px base
-  const MAX_TILT_ANGLE = 15; // Maximum tilt angle in degrees for turns
+  const NAVIGATION_ZOOM = 19.5; // 15% increase from base zoom 17
+  const BUS_MARKER_SIZE = 52; // 30% larger than 40px base
 
-  // Calculate turn direction and intensity (-1 to 1, negative = left, positive = right)
-  const calculateTurnIntensity = useCallback((prevHeading: number | null, currentHeading: number | null): number => {
-    if (prevHeading === null || currentHeading === null) return 0;
-    
-    // Calculate the shortest angle difference
-    let diff = currentHeading - prevHeading;
-    
-    // Normalize to -180 to 180
-    if (diff > 180) diff -= 360;
-    if (diff < -180) diff += 360;
-    
-    // Clamp and normalize to -1 to 1
-    const intensity = Math.max(-1, Math.min(1, diff / 45));
-    return intensity;
-  }, []);
-
-  // Create bus marker element with direction-aware image and 3D perspective
-  const createBusMarkerElement = useCallback((currentHeading: number | null) => {
+  // Create simple bus marker element with static bus-0.png
+  const createBusMarkerElement = useCallback(() => {
     const el = document.createElement('div');
     el.className = 'bus-marker';
     el.style.cssText = `
@@ -101,29 +79,18 @@ const Map: React.FC<MapProps> = ({
       display: flex;
       align-items: center;
       justify-content: center;
-      transform-origin: center center;
-      transform-style: preserve-3d;
-      perspective: 1000px;
     `;
     
     const img = document.createElement('img');
-    img.src = getBusImageForHeading(currentHeading);
+    img.src = bus0;
     img.alt = 'Bus';
     img.className = 'bus-image';
     img.style.cssText = `
       width: 100%;
       height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease-out;
-      transform-style: preserve-3d;
-      backface-visibility: hidden;
-      will-change: transform;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
     `;
-    
-    // Apply fine rotation offset
-    const rotationOffset = getBusRotationOffset(currentHeading);
-    img.style.transform = `rotate(${rotationOffset}deg) rotateY(0deg) rotateX(0deg)`;
     
     el.appendChild(img);
     return el;
@@ -285,71 +252,17 @@ const Map: React.FC<MapProps> = ({
     }
   }, [mapLoaded, userLocation, stops, isNavigating, fetchApproachRoute, approachRouteFetched]);
 
-  // Update user location marker with bus icon, direction-aware image, and turn animations
+  // Update user location marker with simple bus icon
   useEffect(() => {
     if (!map.current || !userLocation) return;
 
-    // Check if heading changed significantly (need new image)
-    const headingChanged = heading !== null && (
-      lastHeadingRef.current === null ||
-      Math.abs(heading - lastHeadingRef.current) >= 22.5
-    );
-
     if (userMarker.current) {
       userMarker.current.setLngLat(userLocation);
-      
-      const el = userMarker.current.getElement();
-      const img = el.querySelector('.bus-image') as HTMLImageElement;
-      
-      if (img && heading !== null) {
-        // Calculate turn intensity for tilt animation
-        const turnIntensity = calculateTurnIntensity(lastHeadingRef.current, heading);
-        const tiltAngle = turnIntensity * MAX_TILT_ANGLE;
-        
-        // Update image source if heading bracket changed
-        if (headingChanged) {
-          const newImageSrc = getBusImageForHeading(heading);
-          if (img.src !== newImageSrc) {
-            img.src = newImageSrc;
-          }
-        }
-        
-        // Apply rotation with 3D tilt effect for turning
-        const rotationOffset = getBusRotationOffset(heading);
-        
-        // Tilt on Y axis for left/right lean, slight X tilt for depth effect
-        const yTilt = tiltAngle;
-        const xTilt = Math.abs(turnIntensity) * 5; // Slight forward lean when turning
-        
-        img.style.transform = `rotate(${rotationOffset}deg) rotateY(${yTilt}deg) rotateX(${xTilt}deg)`;
-        
-        // Enhanced shadow during turns for more realism
-        const shadowIntensity = 0.4 + Math.abs(turnIntensity) * 0.2;
-        const shadowOffset = 6 + Math.abs(turnIntensity) * 4;
-        img.style.filter = `drop-shadow(${tiltAngle * 0.3}px ${shadowOffset}px ${12 + Math.abs(tiltAngle)}px rgba(0,0,0,${shadowIntensity}))`;
-        
-        // Clear previous timeout and set new one to reset tilt
-        if (turnAnimationTimeoutRef.current) {
-          clearTimeout(turnAnimationTimeoutRef.current);
-        }
-        
-        // Smoothly reset tilt after turn completes
-        turnAnimationTimeoutRef.current = setTimeout(() => {
-          if (img) {
-            const currentRotation = getBusRotationOffset(heading);
-            img.style.transform = `rotate(${currentRotation}deg) rotateY(0deg) rotateX(0deg)`;
-            img.style.filter = `drop-shadow(0 6px 12px rgba(0,0,0,0.4))`;
-          }
-        }, 600);
-        
-        lastHeadingRef.current = heading;
-      }
     } else {
-      lastHeadingRef.current = heading;
       userMarker.current = new mapboxgl.Marker({
-        element: createBusMarkerElement(heading),
-        rotationAlignment: 'viewport', // Keep marker oriented to viewport for better 3D effect
-        pitchAlignment: 'viewport',    // Marker stays upright when map is tilted
+        element: createBusMarkerElement(),
+        rotationAlignment: 'viewport',
+        pitchAlignment: 'viewport',
       })
         .setLngLat(userLocation)
         .addTo(map.current);
@@ -361,7 +274,7 @@ const Map: React.FC<MapProps> = ({
         center: userLocation,
         bearing: heading,
         pitch: 65,
-        zoom: NAVIGATION_ZOOM, // Closer zoom for navigation
+        zoom: NAVIGATION_ZOOM,
         duration: 1000,
       });
     } else {
@@ -372,7 +285,7 @@ const Map: React.FC<MapProps> = ({
         duration: 1500,
       });
     }
-  }, [userLocation, heading, isNavigating, createBusMarkerElement, calculateTurnIntensity, NAVIGATION_ZOOM, MAX_TILT_ANGLE]);
+  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM]);
 
   // Update stop markers
   useEffect(() => {
