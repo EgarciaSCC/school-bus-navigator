@@ -72,7 +72,7 @@ const Map: React.FC<MapProps> = ({
 
   // Navigation zoom and bus marker size constants
   const NAVIGATION_ZOOM = 25.5; // 25% increase from base zoom 17
-  const BUS_MARKER_SIZE = 52; // 30% larger than 40px base
+  const BUS_MARKER_SIZE = 100; // 30% larger than 40px base
   const MAX_TILT_ANGLE = 15; // Maximum tilt angle in degrees for turns
 
   // Calculate turn direction and intensity (-1 to 1, negative = left, positive = right)
