@@ -367,7 +367,7 @@ const Map: React.FC<MapProps> = ({
     } else {
       map.current.flyTo({
         center: userLocation,
-        zoom: 20,
+        zoom: 18,
         pitch: 60,
         duration: 1500,
       });
