@@ -443,16 +443,16 @@ const Map: React.FC<MapProps> = ({
         },
       });
 
-      // Completed route line - same color as main route with semi-transparency
+      // Completed route line - gray color to show it's done
       map.current.addLayer({
         id: lineId,
         type: 'line',
         source: sourceId,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#3b82f6', // Same blue as main route
+          'line-color': '#9ca3af', // Gray color for completed route
           'line-width': 8,
-          'line-opacity': 0.5, // Semi-transparent to show completed
+          'line-opacity': 0.8,
         },
       });
     }
