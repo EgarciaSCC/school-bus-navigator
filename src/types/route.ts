@@ -12,7 +12,7 @@ export interface Stop {
 export interface Student {
   id: string;
   name: string;
-  status: 'waiting' | 'picked' | 'dropped';
+  status: 'waiting' | 'picked' | 'dropped' | 'absent';
 }
 
 export interface RouteData {

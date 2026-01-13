@@ -165,7 +165,7 @@ const Index = () => {
   }, []);
 
   // Handle student action
-  const handleStudentAction = useCallback((student: Student, action: 'picked' | 'dropped') => {
+  const handleStudentAction = useCallback((student: Student, action: 'picked' | 'dropped' | 'absent') => {
     setRoute(prev => ({
       ...prev,
       stops: prev.stops.map(stop => ({
@@ -187,9 +187,10 @@ const Index = () => {
       };
     });
 
-    const actionLabel = action === 'picked' ? 'recogido' : 'dejado en casa';
+    const actionLabel = action === 'picked' ? 'recogido' : action === 'dropped' ? 'dejado en casa' : 'no abordó';
+    const emoji = action === 'absent' ? '⚠️' : '👤';
     toast({
-      title: `👤 ${student.name}`,
+      title: `${emoji} ${student.name}`,
       description: `Estudiante ${actionLabel}`,
     });
   }, [toast]);
@@ -356,6 +357,11 @@ const Index = () => {
         onClose={() => setIsStopSheetOpen(false)}
         onStudentAction={handleStudentAction}
         routeDirection={route.direction}
+        onCompleteStop={() => {
+          handleCompleteStop();
+          setIsStopSheetOpen(false);
+        }}
+        canCompleteStop={route.status === 'in_progress' && selectedStop?.id === route.stops[route.currentStopIndex]?.id}
       />
 
       {/* Add Stop Modal */}
