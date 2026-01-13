@@ -228,17 +228,21 @@ const Map: React.FC<MapProps> = ({
     return () => clearTimeout(timeoutId);
   }, [onResize]);
 
-  // Fetch optimized route from Directions API (triggered by stops change or routeVersion)
+  // Fetch optimized route from Directions API (triggered by stops change, routeVersion, or currentStopIndex)
   useEffect(() => {
     if (stops.length >= 2 && mapLoaded) {
-      // When navigating, only fetch route from current stop onwards
+      // When navigating, recalculate route from user location to remaining stops
       if (isNavigating && userLocation && currentStopIndex < stops.length) {
-        const remainingWaypoints: [number, number][] = [
-          userLocation,
-          ...stops.slice(currentStopIndex).map(s => s.coordinates)
-        ];
-        fetchRoute(remainingWaypoints);
-      } else {
+        const remainingStops = stops.slice(currentStopIndex);
+        if (remainingStops.length > 0) {
+          const remainingWaypoints: [number, number][] = [
+            userLocation,
+            ...remainingStops.map(s => s.coordinates)
+          ];
+          fetchRoute(remainingWaypoints);
+        }
+      } else if (!isNavigating) {
+        // When not navigating, show full route
         const waypoints = stops.map(s => s.coordinates);
         fetchRoute(waypoints);
       }
@@ -393,7 +397,7 @@ const Map: React.FC<MapProps> = ({
     }
   }, [approachRouteCoordinates, mapLoaded, isNavigating]);
 
-  // Draw completed route segments (from start to current position)
+  // Draw completed route segments (from start to current position) with same color as main route
   useEffect(() => {
     if (!map.current || !mapLoaded || !isNavigating) return;
 
@@ -401,10 +405,10 @@ const Map: React.FC<MapProps> = ({
     const lineId = 'completed-route-line';
 
     // Get completed stops coordinates
-    const completedStops = stops.slice(0, currentStopIndex);
+    const completedStops = stops.slice(0, currentStopIndex + 1);
     
-    if (completedStops.length < 1) {
-      // Remove completed route if no completed stops
+    if (completedStops.length < 2) {
+      // Remove completed route if not enough stops
       if (map.current.getLayer(lineId)) map.current.removeLayer(lineId);
       if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
       return;
@@ -428,20 +432,20 @@ const Map: React.FC<MapProps> = ({
         },
       });
 
-      // Completed route line (green/success color with semi-transparency)
+      // Completed route line - same color as main route with semi-transparency
       map.current.addLayer({
         id: lineId,
         type: 'line',
         source: sourceId,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#22c55e',
+          'line-color': '#3b82f6', // Same blue as main route
           'line-width': 8,
-          'line-opacity': 0.7,
+          'line-opacity': 0.5, // Semi-transparent to show completed
         },
       });
     }
-  }, [stops, currentStopIndex, mapLoaded, isNavigating]);
+  }, [stops, currentStopIndex, mapLoaded, isNavigating, routeVersion]);
 
   // Draw main route line from Directions API
   useEffect(() => {

@@ -33,6 +33,7 @@ const Index = () => {
   const [activeNotification, setActiveNotification] = useState<NotificationData | null>(null);
   const [isOffRoute, setIsOffRoute] = useState(false);
   const [isPanelVisible, setIsPanelVisible] = useState(true);
+  const [routeVersion, setRouteVersion] = useState(0);
 
   // Smart ETA calculation using Mapbox with intelligent update conditions
   const { nextStopETA, stopETAs } = useSmartETA(
@@ -88,7 +89,7 @@ const Index = () => {
     });
   }, [route.name, route.stops.length, toast]);
 
-  // Handle complete current stop
+  // Handle complete current stop and trigger route recalculation
   const handleCompleteStop = useCallback(() => {
     setRoute(prev => {
       const currentIndex = prev.currentStopIndex;
@@ -102,17 +103,20 @@ const Index = () => {
 
       const isLastStop = nextIndex >= prev.stops.length;
 
-      toast({
-        title: '✅ Parada Completada',
-        description: prev.stops[currentIndex].name,
-      });
-
       return {
         ...prev,
         stops: updatedStops,
         currentStopIndex: isLastStop ? currentIndex : nextIndex,
         status: isLastStop ? 'completed' : 'in_progress',
       };
+    });
+
+    // Trigger route recalculation for remaining stops
+    setRouteVersion(v => v + 1);
+
+    toast({
+      title: '✅ Parada Completada',
+      description: 'Continuando a la siguiente parada...',
     });
   }, [toast]);
 
@@ -191,8 +195,6 @@ const Index = () => {
   }, [toast]);
 
   // Handle add new stop - inserts before the last stop (as intermediate stop) and triggers route recalculation
-  const [routeVersion, setRouteVersion] = useState(0);
-  
   const handleAddStop = useCallback((stopData: Omit<Stop, 'id' | 'status' | 'completedAt'>) => {
     const newStop: Stop = {
       ...stopData,
