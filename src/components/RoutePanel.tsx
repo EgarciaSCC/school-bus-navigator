@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical } from 'lucide-react';
 import { RouteData, Stop } from '@/types/route';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,12 @@ interface RoutePanelProps {
   onStopSelect: (stop: Stop, index: number) => void;
   onStartRoute?: () => void;
   onAddStop?: () => void;
+  onReorderStops?: (fromIndex: number, toIndex: number) => void;
 }
 
-const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute, onAddStop }) => {
+const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute, onAddStop, onReorderStops }) => {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const completedStops = route.stops.filter(s => s.status === 'completed').length;
   const totalStudents = route.stops.reduce((acc, s) => acc + s.students.length, 0);
   const pickedStudents = route.stops.reduce(
@@ -81,17 +84,64 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
             {route.stops.map((stop, index) => {
               const isActive = index === route.currentStopIndex && route.status === 'in_progress';
               const isCompleted = stop.status === 'completed';
+              const canDrag = route.status === 'not_started' && onReorderStops;
+              const isDragging = draggedIndex === index;
+              const isDragOver = dragOverIndex === index;
               
               let cardClass = 'stop-card stop-card-pending';
               if (isActive) cardClass = 'stop-card stop-card-active';
               if (isCompleted) cardClass = 'stop-card stop-card-completed';
 
+              const handleDragStart = (e: React.DragEvent) => {
+                if (!canDrag) return;
+                setDraggedIndex(index);
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', index.toString());
+              };
+
+              const handleDragEnd = () => {
+                setDraggedIndex(null);
+                setDragOverIndex(null);
+              };
+
+              const handleDragOver = (e: React.DragEvent) => {
+                if (!canDrag || draggedIndex === null) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverIndex !== index) {
+                  setDragOverIndex(index);
+                }
+              };
+
+              const handleDragLeave = () => {
+                setDragOverIndex(null);
+              };
+
+              const handleDrop = (e: React.DragEvent) => {
+                e.preventDefault();
+                if (!canDrag || draggedIndex === null || draggedIndex === index) {
+                  handleDragEnd();
+                  return;
+                }
+                onReorderStops(draggedIndex, index);
+                handleDragEnd();
+              };
+
               return (
                 <div
                   key={stop.id}
-                  className={cardClass}
+                  className={`${cardClass} ${isDragging ? 'opacity-50 scale-95' : ''} ${isDragOver ? 'ring-2 ring-primary ring-offset-2' : ''} transition-all duration-200`}
                   onClick={() => onStopSelect(stop, index)}
+                  draggable={!!canDrag}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                 >
+                  {canDrag && (
+                    <GripVertical className="w-4 h-4 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
+                  )}
                   <div className={`
                     w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0
                     ${isCompleted ? 'bg-green-500 text-white' : 
