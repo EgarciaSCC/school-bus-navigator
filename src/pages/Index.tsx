@@ -228,7 +228,8 @@ const Index = () => {
   // Handle reorder stops via drag and drop
   const handleReorderStops = useCallback((fromIndex: number, toIndex: number) => {
     setRoute(prev => {
-      const stops = [...prev.stops];
+      // Create new array with new references to ensure React detects changes
+      const stops = prev.stops.map(s => ({ ...s }));
       const [movedStop] = stops.splice(fromIndex, 1);
       stops.splice(toIndex, 0, movedStop);
       return {
@@ -237,12 +238,14 @@ const Index = () => {
       };
     });
 
-    // Trigger route recalculation
-    setRouteVersion(v => v + 1);
+    // Trigger route recalculation after state update
+    setTimeout(() => {
+      setRouteVersion(v => v + 1);
+    }, 50);
 
     toast({
       title: '🔄 Paradas Reordenadas',
-      description: 'La ruta ha sido actualizada',
+      description: 'La ruta ha sido recalculada',
     });
   }, [toast]);
 
