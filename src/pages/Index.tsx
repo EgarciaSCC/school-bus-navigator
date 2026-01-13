@@ -190,7 +190,7 @@ const Index = () => {
     });
   }, [toast]);
 
-  // Handle add new stop
+  // Handle add new stop - inserts before the last stop (as intermediate stop)
   const handleAddStop = useCallback((stopData: Omit<Stop, 'id' | 'status' | 'completedAt'>) => {
     const newStop: Stop = {
       ...stopData,
@@ -198,14 +198,23 @@ const Index = () => {
       status: 'pending',
     };
 
-    setRoute(prev => ({
-      ...prev,
-      stops: [...prev.stops, newStop],
-    }));
+    setRoute(prev => {
+      const stops = [...prev.stops];
+      // Insert before the last stop to keep the final destination unchanged
+      if (stops.length > 1) {
+        stops.splice(stops.length - 1, 0, newStop);
+      } else {
+        stops.push(newStop);
+      }
+      return {
+        ...prev,
+        stops,
+      };
+    });
 
     toast({
       title: '📍 Nueva Parada Agregada',
-      description: `${newStop.name} - ${newStop.students.length} estudiante(s)`,
+      description: `${newStop.name} - ${newStop.students.length} estudiante(s) (parada intermedia)`,
     });
   }, [toast]);
 
