@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical } from 'lucide-react';
+import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical, Flag, Home } from 'lucide-react';
 import { RouteData, Stop } from '@/types/route';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -84,16 +84,21 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
             {route.stops.map((stop, index) => {
               const isActive = index === route.currentStopIndex && route.status === 'in_progress';
               const isCompleted = stop.status === 'completed';
-              const canDrag = route.status === 'not_started' && onReorderStops;
+              const isTerminal = stop.isTerminal === true;
+              const isFirstStop = index === 0;
+              const isLastStop = index === route.stops.length - 1;
+              // Terminal stops cannot be dragged
+              const canDrag = route.status === 'not_started' && onReorderStops && !isTerminal;
               const isDragging = draggedIndex === index;
-              const isDragOver = dragOverIndex === index;
+              const isDragOver = dragOverIndex === index && !isTerminal;
               
               let cardClass = 'stop-card stop-card-pending';
               if (isActive) cardClass = 'stop-card stop-card-active';
               if (isCompleted) cardClass = 'stop-card stop-card-completed';
+              if (isTerminal) cardClass += ' border-l-4 border-l-primary';
 
               const handleDragStart = (e: React.DragEvent) => {
-                if (!canDrag) return;
+                if (!canDrag || isTerminal) return;
                 setDraggedIndex(index);
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', index.toString());
@@ -105,7 +110,7 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
               };
 
               const handleDragOver = (e: React.DragEvent) => {
-                if (!canDrag || draggedIndex === null) return;
+                if (!onReorderStops || draggedIndex === null || isTerminal) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
                 if (dragOverIndex !== index) {
@@ -119,12 +124,31 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
 
               const handleDrop = (e: React.DragEvent) => {
                 e.preventDefault();
-                if (!canDrag || draggedIndex === null || draggedIndex === index) {
+                // Don't allow dropping on terminal stops
+                if (!onReorderStops || draggedIndex === null || draggedIndex === index || isTerminal) {
                   handleDragEnd();
                   return;
                 }
-                onReorderStops(draggedIndex, index);
+                // Ensure we're not dropping between terminals (keep first and last positions fixed)
+                const targetIndex = Math.max(1, Math.min(index, route.stops.length - 2));
+                if (draggedIndex !== targetIndex) {
+                  onReorderStops(draggedIndex, targetIndex);
+                }
                 handleDragEnd();
+              };
+
+              // Render terminal stop icon
+              const renderStopIcon = () => {
+                if (isCompleted) {
+                  return <CheckCircle2 className="w-5 h-5" />;
+                }
+                if (isFirstStop && isTerminal) {
+                  return <Home className="w-4 h-4" />;
+                }
+                if (isLastStop && isTerminal) {
+                  return <Flag className="w-4 h-4" />;
+                }
+                return index + 1;
               };
 
               return (
@@ -139,25 +163,35 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  {canDrag && (
+                  {canDrag && !isTerminal && (
                     <GripVertical className="w-4 h-4 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
                   )}
                   <div className={`
                     w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0
                     ${isCompleted ? 'bg-green-500 text-white' : 
+                      isTerminal ? 'bg-primary text-primary-foreground' :
                       isActive ? 'bg-yellow-900 text-foreground' : 
                       'bg-grey-200 text-grey-700'}
                   `}>
-                    {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : index + 1}
+                    {renderStopIcon()}
                   </div>
                   <div className="flex-1 min-w-0 overflow-hidden">
-                    <p className={`font-semibold text-sm truncate ${isCompleted ? 'text-green-700' : 'text-foreground'}`}>
-                      {stop.name}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className={`font-semibold text-sm truncate ${isCompleted ? 'text-green-700' : 'text-foreground'}`}>
+                        {stop.name}
+                      </p>
+                      {isTerminal && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium shrink-0">
+                          {isFirstStop ? 'Inicio' : 'Destino'}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">{stop.address}</p>
-                    <p className="text-xs text-primary mt-0.5">
-                      {stop.students.length} estudiante{stop.students.length !== 1 ? 's' : ''}
-                    </p>
+                    {!isTerminal && (
+                      <p className="text-xs text-primary mt-0.5">
+                        {stop.students.length} estudiante{stop.students.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                 </div>
