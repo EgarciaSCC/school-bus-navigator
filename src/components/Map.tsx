@@ -166,13 +166,12 @@ const Map: React.FC<MapProps> = ({
       'bottom-right'
     );
 
-    map.current.on('load', () => {
-      setMapLoaded(true);
-    });
-
+    // Wait for style to be fully loaded before setting mapLoaded
     map.current.on('style.load', () => {
+      if (!map.current) return;
+      
       // Add traffic layer from Mapbox after style is fully loaded
-      if (map.current && !map.current.getSource('mapbox-traffic')) {
+      if (!map.current.getSource('mapbox-traffic')) {
         try {
           map.current.addSource('mapbox-traffic', {
             type: 'vector',
@@ -202,6 +201,9 @@ const Map: React.FC<MapProps> = ({
           console.warn('Could not add traffic layer:', e);
         }
       }
+      
+      // Now it's safe to set mapLoaded
+      setMapLoaded(true);
     });
 
     // Fallback timeout
@@ -347,7 +349,7 @@ const Map: React.FC<MapProps> = ({
 
   // Draw approach route (driver to first stop) in secondary color
   useEffect(() => {
-    if (!map.current || !mapLoaded || isNavigating) return;
+    if (!map.current || !mapLoaded || !map.current.isStyleLoaded()) return;
 
     const sourceId = 'approach-route';
     const outlineId = 'approach-route-outline';
@@ -408,7 +410,7 @@ const Map: React.FC<MapProps> = ({
 
   // Draw completed route segments (from start to current position) with same color as main route
   useEffect(() => {
-    if (!map.current || !mapLoaded || !isNavigating) return;
+    if (!map.current || !mapLoaded || !isNavigating || !map.current.isStyleLoaded()) return;
 
     const sourceId = 'completed-route';
     const lineId = 'completed-route-line';
@@ -458,7 +460,7 @@ const Map: React.FC<MapProps> = ({
 
   // Draw main route line from Directions API
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded || !map.current.isStyleLoaded()) return;
 
     // Use Directions API route if available, otherwise fall back to straight lines
     const coordinates = routeCoordinates || (stops.length >= 2 ? stops.map(s => s.coordinates) : null);
