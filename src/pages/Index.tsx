@@ -8,9 +8,11 @@ import SpeedIndicator from '@/components/SpeedIndicator';
 import ETADisplay from '@/components/ETADisplay';
 import ParentNotification from '@/components/ParentNotification';
 import AddStopModal from '@/components/AddStopModal';
+import ArrivalConfirmation from '@/components/ArrivalConfirmation';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useSmartETA } from '@/hooks/useSmartETA';
 import { useProximityAlerts } from '@/hooks/useProximityAlerts';
+import { useGeofencing } from '@/hooks/useGeofencing';
 import { useToast } from '@/hooks/use-toast';
 import { MOCK_ROUTE } from '@/data/mockRoute';
 import { RouteData, Stop, Student, IncidentType, INCIDENT_CONFIG } from '@/types/route';
@@ -69,6 +71,36 @@ const Index = () => {
     route.status === 'in_progress',
     handleProximityNotification
   );
+
+  // Handle auto-arrival when bus enters geofence
+  const handleAutoArrival = useCallback((stopId: string, stopName: string) => {
+    toast({
+      title: '📍 Llegada Detectada',
+      description: `Has llegado a: ${stopName}`,
+    });
+  }, [toast]);
+
+  // Geofencing for automatic arrival detection
+  const {
+    geofenceState,
+    hasArrivedAtStop,
+    confirmArrival,
+    dismissArrival,
+  } = useGeofencing(
+    coordinates,
+    nextStop,
+    route.status === 'in_progress',
+    handleAutoArrival
+  );
+
+  // Handle confirming arrival and opening stop sheet
+  const handleConfirmArrival = useCallback(() => {
+    confirmArrival();
+    if (nextStop) {
+      setSelectedStop(nextStop);
+      setIsStopSheetOpen(true);
+    }
+  }, [confirmArrival, nextStop]);
 
   // Handle start route
   const handleStartRoute = useCallback(() => {
@@ -379,6 +411,16 @@ const Index = () => {
           etaMinutes={activeNotification.etaMinutes}
           studentCount={activeNotification.studentCount}
           onClose={() => setActiveNotification(null)}
+        />
+      )}
+
+      {/* Geofencing Arrival Confirmation */}
+      {hasArrivedAtStop && nextStop && (
+        <ArrivalConfirmation
+          stopName={nextStop.name}
+          distance={geofenceState.distanceToStop}
+          onConfirm={handleConfirmArrival}
+          onDismiss={dismissArrival}
         />
       )}
     </div>
