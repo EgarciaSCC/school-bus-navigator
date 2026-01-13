@@ -17,6 +17,7 @@ interface MapProps {
   onRouteRecalculated?: () => void;
   isOffRoute?: boolean;
   onResize?: boolean; // Trigger resize when this prop changes
+  routeVersion?: number; // Triggers route recalculation when changed
 }
 
 const Map: React.FC<MapProps> = ({ 
@@ -28,7 +29,8 @@ const Map: React.FC<MapProps> = ({
   heading = null,
   onRouteRecalculated,
   isOffRoute: externalIsOffRoute,
-  onResize
+  onResize,
+  routeVersion = 0
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -226,13 +228,22 @@ const Map: React.FC<MapProps> = ({
     return () => clearTimeout(timeoutId);
   }, [onResize]);
 
-  // Fetch optimized route from Directions API
+  // Fetch optimized route from Directions API (triggered by stops change or routeVersion)
   useEffect(() => {
     if (stops.length >= 2 && mapLoaded) {
-      const waypoints = stops.map(s => s.coordinates);
-      fetchRoute(waypoints);
+      // When navigating, only fetch route from current stop onwards
+      if (isNavigating && userLocation && currentStopIndex < stops.length) {
+        const remainingWaypoints: [number, number][] = [
+          userLocation,
+          ...stops.slice(currentStopIndex).map(s => s.coordinates)
+        ];
+        fetchRoute(remainingWaypoints);
+      } else {
+        const waypoints = stops.map(s => s.coordinates);
+        fetchRoute(waypoints);
+      }
     }
-  }, [stops, mapLoaded, fetchRoute]);
+  }, [stops, mapLoaded, fetchRoute, routeVersion, isNavigating, userLocation, currentStopIndex]);
 
   // Fetch approach route (from driver location to first stop) - only before route starts
   useEffect(() => {
@@ -381,6 +392,56 @@ const Map: React.FC<MapProps> = ({
       });
     }
   }, [approachRouteCoordinates, mapLoaded, isNavigating]);
+
+  // Draw completed route segments (from start to current position)
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !isNavigating) return;
+
+    const sourceId = 'completed-route';
+    const lineId = 'completed-route-line';
+
+    // Get completed stops coordinates
+    const completedStops = stops.slice(0, currentStopIndex);
+    
+    if (completedStops.length < 1) {
+      // Remove completed route if no completed stops
+      if (map.current.getLayer(lineId)) map.current.removeLayer(lineId);
+      if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+      return;
+    }
+
+    const completedCoordinates = completedStops.map(s => s.coordinates);
+
+    if (map.current.getSource(sourceId)) {
+      (map.current.getSource(sourceId) as mapboxgl.GeoJSONSource).setData({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: completedCoordinates },
+      });
+    } else {
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: completedCoordinates },
+        },
+      });
+
+      // Completed route line (green/success color with semi-transparency)
+      map.current.addLayer({
+        id: lineId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#22c55e',
+          'line-width': 8,
+          'line-opacity': 0.7,
+        },
+      });
+    }
+  }, [stops, currentStopIndex, mapLoaded, isNavigating]);
 
   // Draw main route line from Directions API
   useEffect(() => {
