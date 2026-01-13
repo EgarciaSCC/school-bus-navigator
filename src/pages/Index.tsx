@@ -190,7 +190,9 @@ const Index = () => {
     });
   }, [toast]);
 
-  // Handle add new stop - inserts before the last stop (as intermediate stop)
+  // Handle add new stop - inserts before the last stop (as intermediate stop) and triggers route recalculation
+  const [routeVersion, setRouteVersion] = useState(0);
+  
   const handleAddStop = useCallback((stopData: Omit<Stop, 'id' | 'status' | 'completedAt'>) => {
     const newStop: Stop = {
       ...stopData,
@@ -211,6 +213,9 @@ const Index = () => {
         stops,
       };
     });
+
+    // Trigger route recalculation
+    setRouteVersion(v => v + 1);
 
     toast({
       title: '📍 Nueva Parada Agregada',
@@ -267,6 +272,7 @@ const Index = () => {
           onRouteRecalculated={handleRouteRecalculated}
           isOffRoute={isOffRoute}
           onResize={isPanelVisible}
+          routeVersion={routeVersion}
         />
 
         {/* Speed Indicator - positioned based on panel visibility */}
