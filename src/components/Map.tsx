@@ -229,20 +229,29 @@ const Map: React.FC<MapProps> = ({
   }, [onResize]);
 
   // Fetch optimized route from Directions API (triggered by stops change, routeVersion, or currentStopIndex)
+  // Always navigates from current user location to next uncompleted stop
   useEffect(() => {
     if (stops.length >= 2 && mapLoaded) {
-      // When navigating, recalculate route from user location to remaining stops
-      if (isNavigating && userLocation && currentStopIndex < stops.length) {
-        const remainingStops = stops.slice(currentStopIndex);
-        if (remainingStops.length > 0) {
-          const remainingWaypoints: [number, number][] = [
-            userLocation,
-            ...remainingStops.map(s => s.coordinates)
-          ];
-          fetchRoute(remainingWaypoints);
+      // When navigating, always calculate route from current position to remaining stops
+      if (isNavigating && userLocation) {
+        // Find the next uncompleted stop
+        const nextUncompletedIndex = stops.findIndex((s, i) => i >= currentStopIndex && s.status !== 'completed');
+        
+        if (nextUncompletedIndex !== -1) {
+          // Get all remaining stops from the next uncompleted one to the end
+          const remainingStops = stops.slice(nextUncompletedIndex);
+          
+          if (remainingStops.length > 0) {
+            // Always start from current user location (real-time position)
+            const waypoints: [number, number][] = [
+              userLocation,
+              ...remainingStops.map(s => s.coordinates)
+            ];
+            fetchRoute(waypoints);
+          }
         }
       } else if (!isNavigating) {
-        // When not navigating, show full route
+        // When not navigating, show full route preview
         const waypoints = stops.map(s => s.coordinates);
         fetchRoute(waypoints);
       }

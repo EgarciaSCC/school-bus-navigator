@@ -6,6 +6,7 @@ export interface Stop {
   students: Student[];
   status: 'pending' | 'active' | 'completed';
   completedAt?: Date;
+  isTerminal?: boolean; // True for start and end points (not modifiable, no student pickup)
 }
 
 export interface Student {

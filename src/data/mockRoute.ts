@@ -7,8 +7,9 @@ export const MOCK_STOPS: Stop[] = [
     name: 'Colegio San Rafael',
     address: 'Cra 7 #45-10, Chapinero',
     coordinates: [-74.0608, 4.6351],
-    students: [], // Primera parada sin estudiantes
+    students: [], // Punto de partida - sin estudiantes
     status: 'pending',
+    isTerminal: true, // No modificable
   },
   {
     id: '2',
@@ -48,12 +49,9 @@ export const MOCK_STOPS: Stop[] = [
     name: 'Terminal Norte',
     address: 'Autopista Norte #175-50',
     coordinates: [-74.0521, 4.7542],
-    students: [
-      { id: 's9', name: 'Valentina Ruiz', status: 'waiting' },
-      { id: 's10', name: 'Mateo Gómez', status: 'waiting' },
-      { id: 's11', name: 'Isabella Díaz', status: 'waiting' },
-    ],
+    students: [], // Punto de llegada - sin estudiantes
     status: 'pending',
+    isTerminal: true, // No modificable
   },
 ];
 
