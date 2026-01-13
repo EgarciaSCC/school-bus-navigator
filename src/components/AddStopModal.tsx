@@ -37,6 +37,8 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
   const [confirmedLocation, setConfirmedLocation] = useState<[number, number] | null>(null);
   const [showMap, setShowMap] = useState(false);
   
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
@@ -74,7 +76,10 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
 
       marker.on('dragend', () => {
         const lngLat = marker.getLngLat();
-        setSelectedLocation([lngLat.lng, lngLat.lat]);
+        const newCoords: [number, number] = [lngLat.lng, lngLat.lat];
+        setSelectedLocation(newCoords);
+        // Trigger reverse geocoding to update address
+        reverseGeocode(newCoords);
       });
 
       markerRef.current = marker;
@@ -97,7 +102,27 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
     }
   }, [selectedLocation]);
 
-  // Geocode address
+  // Reverse geocode coordinates to get address
+  const reverseGeocode = useCallback(async (coordinates: [number, number]) => {
+    setIsReverseGeocoding(true);
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${coordinates[0]},${coordinates[1]}.json?access_token=${MAPBOX_TOKEN}&language=es&limit=1`
+      );
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const placeName = data.features[0].place_name;
+        setAddress(placeName);
+      }
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+    } finally {
+      setIsReverseGeocoding(false);
+    }
+  }, []);
+
+  // Geocode address (forward geocoding)
   const searchAddress = useCallback(async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -324,6 +349,21 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
                 <Move className="w-4 h-4" />
                 <span>Arrastra el marcador para ajustar la ubicación exacta</span>
               </div>
+
+              {/* Current Address Display */}
+              <div className="p-2 bg-muted rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary shrink-0" />
+                  {isReverseGeocoding ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Obteniendo dirección...</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm line-clamp-2">{address}</span>
+                  )}
+                </div>
+              </div>
               
               <div 
                 ref={mapContainerRef} 
@@ -342,9 +382,14 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
                 <Button
                   type="button"
                   onClick={handleConfirmLocation}
+                  disabled={isReverseGeocoding}
                   className="flex-1"
                 >
-                  <Check className="w-4 h-4 mr-2" />
+                  {isReverseGeocoding ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-2" />
+                  )}
                   Confirmar Ubicación
                 </Button>
               </div>
