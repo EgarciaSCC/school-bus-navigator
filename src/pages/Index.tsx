@@ -225,6 +225,27 @@ const Index = () => {
     });
   }, [toast]);
 
+  // Handle reorder stops via drag and drop
+  const handleReorderStops = useCallback((fromIndex: number, toIndex: number) => {
+    setRoute(prev => {
+      const stops = [...prev.stops];
+      const [movedStop] = stops.splice(fromIndex, 1);
+      stops.splice(toIndex, 0, movedStop);
+      return {
+        ...prev,
+        stops,
+      };
+    });
+
+    // Trigger route recalculation
+    setRouteVersion(v => v + 1);
+
+    toast({
+      title: '🔄 Paradas Reordenadas',
+      description: 'La ruta ha sido actualizada',
+    });
+  }, [toast]);
+
   return (
     <div className="h-screen w-screen flex overflow-hidden">
       {/* Left Panel - Route Info */}
@@ -235,6 +256,7 @@ const Index = () => {
             onStopSelect={handleStopSelect}
             onStartRoute={handleStartRoute}
             onAddStop={() => setIsAddStopModalOpen(true)}
+            onReorderStops={handleReorderStops}
           />
           {/* Close button for mobile - inside panel */}
           <button
