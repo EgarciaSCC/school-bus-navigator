@@ -10,25 +10,34 @@ import {
   X,
   CloudRain,
   MessageSquare,
+  Users,
 } from 'lucide-react';
-import { IncidentType } from '@/types/route';
+import { IncidentType, Stop } from '@/types/route';
 
 interface ActionBarProps {
   routeStatus: 'not_started' | 'in_progress' | 'completed';
+  currentStop?: Stop;
   onStartRoute: () => void;
   onReportIncident: (type: IncidentType) => void;
   onCompleteStop: () => void;
+  onShowStopDetail: () => void;
   onFinishRoute: () => void;
 }
 
 const ActionBar: React.FC<ActionBarProps> = ({
   routeStatus,
+  currentStop,
   onStartRoute,
   onReportIncident,
   onCompleteStop,
+  onShowStopDetail,
   onFinishRoute,
 }) => {
   const [showIncidentMenu, setShowIncidentMenu] = useState(false);
+
+  // Determine if current stop is terminal or has pending students
+  const isTerminalStop = currentStop?.isTerminal ?? false;
+  const hasPendingStudents = currentStop?.students.some(s => s.status === 'waiting') ?? false;
 
   if (routeStatus === 'not_started') {
     return (
@@ -69,13 +78,27 @@ const ActionBar: React.FC<ActionBarProps> = ({
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 max-w-md px-4">
         <div className="panel-card p-3">
           <div className="flex items-center gap-3">
-            {/* Complete Stop */}
+            {/* Complete Stop - shows student list if intermediate with students, else completes directly */}
             <button
-              onClick={onCompleteStop}
+              onClick={() => {
+                if (isTerminalStop || !hasPendingStudents) {
+                  // Terminal stop or no pending students: complete directly
+                  onCompleteStop();
+                } else {
+                  // Intermediate stop with pending students: show detail
+                  onShowStopDetail();
+                }
+              }}
               className="btn-success shrink-0"
             >
-              <CheckCircle className="w-5 h-5" />
-              <span className="hidden sm:inline">Completar Parada</span>
+              {!isTerminalStop && hasPendingStudents ? (
+                <Users className="w-5 h-5" />
+              ) : (
+                <CheckCircle className="w-5 h-5" />
+              )}
+              <span className="hidden sm:inline">
+                {!isTerminalStop && hasPendingStudents ? 'Ver Estudiantes' : 'Completar Parada'}
+              </span>
             </button>
 
             <div className="w-px h-8 bg-border shrink-0" />
