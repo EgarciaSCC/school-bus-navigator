@@ -9,13 +9,16 @@ import ETADisplay from '@/components/ETADisplay';
 import ParentNotification from '@/components/ParentNotification';
 import AddStopModal from '@/components/AddStopModal';
 import ArrivalConfirmation from '@/components/ArrivalConfirmation';
+import RouteReportModal from '@/components/RouteReportModal';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useSmartETA } from '@/hooks/useSmartETA';
 import { useProximityAlerts } from '@/hooks/useProximityAlerts';
 import { useGeofencing } from '@/hooks/useGeofencing';
+import { useRouteTracking } from '@/hooks/useRouteTracking';
 import { useToast } from '@/hooks/use-toast';
 import { MOCK_ROUTE } from '@/data/mockRoute';
 import { RouteData, Stop, Student, IncidentType, INCIDENT_CONFIG } from '@/types/route';
+import { RouteReport } from '@/types/routeReport';
 
 interface NotificationData {
   stopName: string;
@@ -37,6 +40,25 @@ const Index = () => {
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [routeVersion, setRouteVersion] = useState(0);
   const [showRouteOverview, setShowRouteOverview] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReport, setCurrentReport] = useState<RouteReport | null>(null);
+
+  // Route tracking for report generation
+  const {
+    startTracking,
+    stopTracking,
+    recordStudentAction,
+    recordStopCompletion,
+    recordIncident,
+    submitReport,
+    totalDistanceKm,
+    averageSpeedKmh,
+  } = useRouteTracking({
+    route,
+    coordinates,
+    speed,
+    isNavigating: route.status === 'in_progress',
+  });
 
   // Smart ETA calculation using Mapbox with intelligent update conditions
   const { nextStopETA, stopETAs } = useSmartETA(
@@ -113,6 +135,9 @@ const Index = () => {
       ),
     }));
     
+    // Start tracking for report
+    startTracking();
+    
     // Auto-hide panel when route starts
     setIsPanelVisible(false);
     
@@ -120,10 +145,17 @@ const Index = () => {
       title: '🚌 Ruta Iniciada',
       description: `${route.name} - ${route.stops.length} paradas`,
     });
-  }, [route.name, route.stops.length, toast]);
+  }, [route.name, route.stops.length, toast, startTracking]);
 
   // Handle complete current stop and trigger route recalculation
   const handleCompleteStop = useCallback(() => {
+    const currentStop = route.stops[route.currentStopIndex];
+    
+    // Record stop completion for report
+    if (currentStop) {
+      recordStopCompletion(currentStop);
+    }
+    
     setRoute(prev => {
       const currentIndex = prev.currentStopIndex;
       const nextIndex = currentIndex + 1;
@@ -151,31 +183,43 @@ const Index = () => {
       title: '✅ Parada Completada',
       description: 'Continuando a la siguiente parada...',
     });
-  }, [toast]);
+  }, [toast, route.stops, route.currentStopIndex, recordStopCompletion]);
 
   // Handle report incident
   const handleReportIncident = useCallback((type: IncidentType) => {
     const config = INCIDENT_CONFIG[type];
     
+    // Record incident for report
+    recordIncident();
+    
     toast({
       title: `📍 ${config.label}`,
       description: 'Novedad reportada exitosamente',
     });
-  }, [toast]);
+  }, [toast, recordIncident]);
 
   // Handle finish route
   const handleFinishRoute = useCallback(() => {
+    // Generate report before updating route status
+    const report = stopTracking();
+    
     setRoute(prev => ({
       ...prev,
       status: 'completed',
       stops: prev.stops.map(s => ({ ...s, status: 'completed' as const })),
     }));
 
+    // Show report modal
+    if (report) {
+      setCurrentReport(report);
+      setIsReportModalOpen(true);
+    }
+
     toast({
       title: '🏁 Ruta Finalizada',
       description: '¡Buen trabajo! Todas las paradas completadas.',
     });
-  }, [toast]);
+  }, [toast, stopTracking]);
 
   // Handle route recalculation notification
   const handleRouteRecalculated = useCallback(() => {
@@ -199,6 +243,9 @@ const Index = () => {
 
   // Handle student action
   const handleStudentAction = useCallback((student: Student, action: 'picked' | 'dropped' | 'absent') => {
+    // Find the stop containing this student for tracking
+    const stop = route.stops.find(s => s.students.some(st => st.id === student.id));
+    
     setRoute(prev => ({
       ...prev,
       stops: prev.stops.map(stop => ({
@@ -220,13 +267,18 @@ const Index = () => {
       };
     });
 
+    // Record student action for report
+    if (stop) {
+      recordStudentAction(student, stop, action);
+    }
+
     const actionLabel = action === 'picked' ? 'recogido' : action === 'dropped' ? 'dejado en casa' : 'no abordó';
     const emoji = action === 'absent' ? '⚠️' : '👤';
     toast({
       title: `${emoji} ${student.name}`,
       description: `Estudiante ${actionLabel}`,
     });
-  }, [toast]);
+  }, [toast, route.stops, recordStudentAction]);
 
   // Handle add new stop - inserts before the last stop (as intermediate stop) and triggers route recalculation
   const handleAddStop = useCallback((stopData: Omit<Stop, 'id' | 'status' | 'completedAt'>) => {
@@ -416,11 +468,20 @@ const Index = () => {
         canCompleteStop={route.status === 'in_progress' && selectedStop?.id === route.stops[route.currentStopIndex]?.id}
       />
 
-      {/* Add Stop Modal */}
+      {/* Add Stop Modal - stays open to add multiple stops */}
       <AddStopModal
         open={isAddStopModalOpen}
         onClose={() => setIsAddStopModalOpen(false)}
         onAddStop={handleAddStop}
+        keepOpenAfterAdd={route.status === 'not_started'}
+      />
+
+      {/* Route Report Modal */}
+      <RouteReportModal
+        open={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        report={currentReport}
+        onSubmit={submitReport}
       />
 
       {/* Parent Notification Popup */}

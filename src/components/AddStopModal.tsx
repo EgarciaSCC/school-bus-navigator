@@ -22,9 +22,10 @@ interface AddStopModalProps {
   open: boolean;
   onClose: () => void;
   onAddStop: (stop: Omit<Stop, 'id' | 'status' | 'completedAt'>) => void;
+  keepOpenAfterAdd?: boolean;
 }
 
-const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop }) => {
+const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, keepOpenAfterAdd = false }) => {
   const [stopName, setStopName] = useState('');
   const [address, setAddress] = useState('');
   const [studentNames, setStudentNames] = useState<string[]>(['']);
@@ -227,9 +228,13 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
 
     onAddStop(newStop);
     
-    // Reset form
+    // Reset form but optionally keep modal open
     resetForm();
-    onClose();
+    setIsSubmitting(false);
+    
+    if (!keepOpenAfterAdd) {
+      onClose();
+    }
   };
 
   const resetForm = () => {
@@ -454,7 +459,7 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
                   onClick={handleClose}
                   className="flex-1"
                 >
-                  Cancelar
+                  {keepOpenAfterAdd ? 'Cerrar' : 'Cancelar'}
                 </Button>
                 <Button
                   type="submit"
@@ -462,7 +467,7 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop })
                   className="flex-1"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Crear Parada
+                  {keepOpenAfterAdd ? 'Agregar y Continuar' : 'Crear Parada'}
                 </Button>
               </div>
             </>
