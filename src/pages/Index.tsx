@@ -447,9 +447,16 @@ const Index = () => {
         {/* Action Bar */}
         <ActionBar
           routeStatus={route.status}
+          currentStop={nextStop}
           onStartRoute={handleStartRoute}
           onReportIncident={handleReportIncident}
           onCompleteStop={handleCompleteStop}
+          onShowStopDetail={() => {
+            if (nextStop) {
+              setSelectedStop(nextStop);
+              setIsStopSheetOpen(true);
+            }
+          }}
           onFinishRoute={handleFinishRoute}
         />
       </div>
