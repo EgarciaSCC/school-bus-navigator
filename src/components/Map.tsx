@@ -339,7 +339,7 @@ const Map: React.FC<MapProps> = ({
     }
   }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM, updateBusPosition, setBusMarker, busMarkerRef, showOverview]);
 
-  // Handle overview mode - show full route
+  // Handle overview mode - show full route or return to bus position
   useEffect(() => {
     if (!map.current || !mapLoaded || stops.length < 2) return;
 
@@ -358,8 +358,17 @@ const Map: React.FC<MapProps> = ({
         bearing: 0,
         duration: 1000,
       });
+    } else if (userLocation) {
+      // Return to bus position when exiting overview mode
+      map.current.easeTo({
+        center: userLocation,
+        bearing: heading ?? 0,
+        pitch: isNavigating ? 65 : 60,
+        zoom: isNavigating ? NAVIGATION_ZOOM : 18,
+        duration: 1000,
+      });
     }
-  }, [showOverview, stops, mapLoaded, userLocation]);
+  }, [showOverview, stops, mapLoaded, userLocation, heading, isNavigating, NAVIGATION_ZOOM]);
 
   // Update stop markers
   useEffect(() => {

@@ -337,15 +337,14 @@ const Index = () => {
           showOverview={showRouteOverview}
         />
 
-        {/* Route Overview Toggle Button */}
+        {/* Route Overview Toggle Button - positioned above Mapbox zoom controls */}
         <button
           onClick={() => setShowRouteOverview(!showRouteOverview)}
-          className={`absolute z-20 right-4 shadow-lg p-3 transition-all duration-300 rounded-full border
+          className={`absolute z-20 right-[10px] bottom-[120px] shadow-lg p-2.5 transition-all duration-300 rounded-lg border
             ${showRouteOverview 
               ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
               : 'bg-card text-foreground border-border hover:bg-muted'
             }
-            ${route.status === 'in_progress' && nextStopETA ? 'top-20 sm:top-4' : 'top-4'}
           `}
           title={showRouteOverview ? 'Volver a navegación' : 'Ver ruta completa'}
         >
