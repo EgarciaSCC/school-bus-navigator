@@ -6,6 +6,7 @@ import { Stop } from '@/types/route';
 import { useMapboxDirections } from '@/hooks/useMapboxDirections';
 import { useRouteDeviation } from '@/hooks/useRouteDeviation';
 import { useSmoothMarker } from '@/hooks/useSmoothMarker';
+import { useSnapToRoute } from '@/hooks/useSnapToRoute';
 import bus0 from '@/assets/bus-0.png';
 
 interface MapProps {
@@ -77,6 +78,16 @@ const Map: React.FC<MapProps> = ({
       onRouteRecalculated?.();
     }
   );
+
+  // Snap to route for precise bus positioning on the road
+  const { snapToRoute } = useSnapToRoute(routeCoordinates);
+  
+  // Calculate snapped location for the bus
+  const snappedUserLocation = useMemo(() => {
+    if (!userLocation || !isNavigating) return userLocation;
+    const result = snapToRoute(userLocation);
+    return result?.snappedLocation ?? userLocation;
+  }, [userLocation, isNavigating, snapToRoute]);
 
   // Navigation zoom and bus marker size constants
   const NAVIGATION_ZOOM = 19.5; // 15% increase from base zoom 17
@@ -289,22 +300,22 @@ const Map: React.FC<MapProps> = ({
     }
   }, [mapLoaded, userLocation, stops, isNavigating, fetchApproachRoute, approachRouteFetched]);
 
-  // Update user location marker with smooth animation
+  // Update user location marker with smooth animation (uses snapped position when navigating)
   useEffect(() => {
-    if (!map.current || !userLocation) return;
+    if (!map.current || !snappedUserLocation) return;
 
     const now = performance.now();
 
     if (busMarkerRef.current) {
-      // Use smooth position update instead of direct setLngLat
-      updateBusPosition(userLocation);
+      // Use smooth position update with snapped location for precise road positioning
+      updateBusPosition(snappedUserLocation);
     } else {
       const marker = new mapboxgl.Marker({
         element: createBusMarkerElement(),
         rotationAlignment: 'viewport',
         pitchAlignment: 'viewport',
       })
-        .setLngLat(userLocation)
+        .setLngLat(snappedUserLocation)
         .addTo(map.current);
       
       setBusMarker(marker);
@@ -322,7 +333,7 @@ const Map: React.FC<MapProps> = ({
     // First person view: follow user and rotate map based on heading
     if (isNavigating && heading !== null) {
       map.current.easeTo({
-        center: userLocation,
+        center: snappedUserLocation,
         bearing: heading,
         pitch: 65,
         zoom: NAVIGATION_ZOOM,
@@ -331,13 +342,13 @@ const Map: React.FC<MapProps> = ({
       });
     } else if (!isNavigating) {
       map.current.flyTo({
-        center: userLocation,
+        center: snappedUserLocation,
         zoom: 18,
         pitch: 60,
         duration: 1500,
       });
     }
-  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM, updateBusPosition, setBusMarker, busMarkerRef, showOverview]);
+  }, [snappedUserLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM, updateBusPosition, setBusMarker, busMarkerRef, showOverview]);
 
   // Handle overview mode - show full route or return to bus position
   useEffect(() => {
@@ -348,8 +359,8 @@ const Map: React.FC<MapProps> = ({
       stops.forEach(stop => bounds.extend(stop.coordinates));
       
       // Include user location in bounds if available
-      if (userLocation) {
-        bounds.extend(userLocation);
+      if (snappedUserLocation) {
+        bounds.extend(snappedUserLocation);
       }
 
       map.current.fitBounds(bounds, {
@@ -358,17 +369,17 @@ const Map: React.FC<MapProps> = ({
         bearing: 0,
         duration: 1000,
       });
-    } else if (userLocation) {
+    } else if (snappedUserLocation) {
       // Return to bus position when exiting overview mode
       map.current.easeTo({
-        center: userLocation,
+        center: snappedUserLocation,
         bearing: heading ?? 0,
         pitch: isNavigating ? 65 : 60,
         zoom: isNavigating ? NAVIGATION_ZOOM : 18,
         duration: 1000,
       });
     }
-  }, [showOverview, stops, mapLoaded, userLocation, heading, isNavigating, NAVIGATION_ZOOM]);
+  }, [showOverview, stops, mapLoaded, snappedUserLocation, heading, isNavigating, NAVIGATION_ZOOM]);
 
   // Update stop markers
   useEffect(() => {
