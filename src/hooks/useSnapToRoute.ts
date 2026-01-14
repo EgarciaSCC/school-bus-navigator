@@ -13,7 +13,7 @@ const SNAP_THRESHOLD_METERS = 50;
  * Hook to snap GPS coordinates to the nearest point on a route line.
  * This improves the visual accuracy of the bus position on the map.
  */
-export const useSnapToRoute = (routeCoordinates: [number, number][]) => {
+export const useSnapToRoute = (routeCoordinates: [number, number][] | null) => {
   
   // Convert degrees to radians
   const toRad = (deg: number) => deg * (Math.PI / 180);
@@ -73,7 +73,7 @@ export const useSnapToRoute = (routeCoordinates: [number, number][]) => {
   const snapToRoute = useCallback((
     location: [number, number] | null
   ): SnappedPosition | null => {
-    if (!location || routeCoordinates.length < 2) {
+    if (!location || !routeCoordinates || routeCoordinates.length < 2) {
       return null;
     }
     
@@ -106,6 +106,6 @@ export const useSnapToRoute = (routeCoordinates: [number, number][]) => {
   
   return {
     snapToRoute,
-    hasRoute: routeCoordinates.length >= 2,
+    hasRoute: (routeCoordinates?.length ?? 0) >= 2,
   };
 };
