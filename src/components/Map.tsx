@@ -526,7 +526,7 @@ const Map: React.FC<MapProps> = ({
     }
   }, [stops, currentStopIndex, mapLoaded, isNavigating, routeVersion]);
 
-  // Draw main route line from Directions API
+  // Draw main route line from Directions API with lane offset
   useEffect(() => {
     if (!map.current || !mapLoaded || !map.current.isStyleLoaded()) return;
 
@@ -555,7 +555,7 @@ const Map: React.FC<MapProps> = ({
         },
       });
 
-      // Route outline (white border)
+      // Route outline (white border) - offset to the right lane
       map.current.addLayer({
         id: outlineId,
         type: 'line',
@@ -564,10 +564,11 @@ const Map: React.FC<MapProps> = ({
         paint: {
           'line-color': '#ffffff',
           'line-width': 12,
+          'line-offset': 4, // Offset to right lane (positive = right side of direction)
         },
       });
 
-      // Route line (purple/primary color)
+      // Route line (purple/primary color) - offset to the right lane
       map.current.addLayer({
         id: lineId,
         type: 'line',
@@ -576,6 +577,7 @@ const Map: React.FC<MapProps> = ({
         paint: {
           'line-color': '#7124F5',
           'line-width': 8,
+          'line-offset': 4, // Offset to right lane
         },
       });
     }
@@ -585,17 +587,7 @@ const Map: React.FC<MapProps> = ({
     <div className="relative w-full h-full bg-grey-100">
       <div ref={mapContainer} className="absolute inset-0" />
       
-      {/* Route loading indicator */}
-      {(isRouteLoading || isApproachRouteLoading) && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-medium text-grey-700">
-            {isApproachRouteLoading ? 'Calculando ruta al punto de inicio...' : 'Calculando ruta óptima...'}
-          </span>
-        </div>
-      )}
-
-      {/* Route recalculation indicator */}
+      {/* Route recalculation indicator - only show when off-route and recalculating */}
       {isRecalculating && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-yellow-50 border border-yellow-300 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
           <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
@@ -603,7 +595,7 @@ const Map: React.FC<MapProps> = ({
         </div>
       )}
 
-      {/* Off-route warning */}
+      {/* Off-route warning - only show when deviated from route */}
       {(isOffRoute || externalIsOffRoute) && !isRecalculating && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-red-50 border border-red-300 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
           <span className="text-sm font-medium text-red-700">⚠️ Fuera de ruta</span>
