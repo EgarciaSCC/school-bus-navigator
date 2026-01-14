@@ -1,8 +1,18 @@
-import React from 'react';
-import { MapPin, Users, CheckCircle, UserPlus, UserMinus, X, UserX, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, Users, CheckCircle, UserPlus, UserMinus, X, UserX, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Stop, Student } from '@/types/route';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface StopDetailSheetProps {
   stop: Stop | null;
@@ -12,7 +22,26 @@ interface StopDetailSheetProps {
   routeDirection: 'outbound' | 'return';
   onCompleteStop?: () => void;
   canCompleteStop?: boolean;
+  busLocation?: [number, number] | null;
 }
+
+// Calculate distance between two coordinates in km using Haversine formula
+const calculateDistanceKm = (
+  coord1: [number, number],
+  coord2: [number, number]
+): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((coord2[1] - coord1[1]) * Math.PI) / 180;
+  const dLon = ((coord2[0] - coord1[0]) * Math.PI) / 180;
+  const lat1 = (coord1[1] * Math.PI) / 180;
+  const lat2 = (coord2[1] * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
 
 const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
   stop,
@@ -22,7 +51,11 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
   routeDirection,
   onCompleteStop,
   canCompleteStop = false,
+  busLocation,
 }) => {
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ student: Student; action: 'picked' | 'dropped' | 'absent' } | null>(null);
+  const [distanceToStop, setDistanceToStop] = useState<number>(0);
   if (!stop) return null;
 
   // Check if all students have been processed (picked/dropped/absent)
@@ -33,16 +66,70 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
         : s.status === 'dropped' || s.status === 'absent'
     );
 
-  const pendingStudents = stop.students.filter(s => s.status === 'waiting').length;
+  const pendingStudentsCount = stop.students.filter(s => s.status === 'waiting').length;
+
+  // Handle student action with distance check
+  const handleStudentAction = (student: Student, action: 'picked' | 'dropped' | 'absent') => {
+    // Only check distance for 'picked' or 'dropped' actions (not 'absent')
+    if ((action === 'picked' || action === 'dropped') && busLocation && stop.coordinates) {
+      const distance = calculateDistanceKm(busLocation, stop.coordinates);
+      
+      if (distance > 1) {
+        setDistanceToStop(distance);
+        setPendingAction({ student, action });
+        setConfirmDialogOpen(true);
+        return;
+      }
+    }
+    
+    // Execute action directly if no confirmation needed
+    onStudentAction(student, action);
+  };
+
+  const confirmPendingAction = () => {
+    if (pendingAction) {
+      onStudentAction(pendingAction.student, pendingAction.action);
+      setPendingAction(null);
+    }
+    setConfirmDialogOpen(false);
+  };
+
+  const cancelPendingAction = () => {
+    setPendingAction(null);
+    setConfirmDialogOpen(false);
+  };
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent side="right" className="w-[400px] sm:max-w-[400px] p-0">
-        <SheetHeader className="p-6 bg-gradient-to-r from-purple-900 to-red-700">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-white text-xl">{stop.name}</SheetTitle>
-            <button onClick={onClose} className="text-white/80 hover:text-white">
-              <X className="w-6 h-6" />
+    <>
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              Ubicación distante
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Te encuentras a <strong>{distanceToStop.toFixed(2)} km</strong> de la parada original del estudiante.
+              <br /><br />
+              ¿Deseas confirmar esta acción de todos modos?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelPendingAction}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPendingAction}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+        <SheetContent side="right" className="w-[400px] sm:max-w-[400px] p-0">
+          <SheetHeader className="p-6 bg-gradient-to-r from-purple-900 to-red-700">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-white text-xl">{stop.name}</SheetTitle>
+              <button onClick={onClose} className="text-white/80 hover:text-white">
+                <X className="w-6 h-6" />
             </button>
           </div>
           <div className="flex items-center gap-2 text-white/90 text-sm mt-2">
@@ -102,14 +189,14 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
                     {routeDirection === 'outbound' && student.status === 'waiting' && (
                       <>
                         <button
-                          onClick={() => onStudentAction(student, 'picked')}
+                          onClick={() => handleStudentAction(student, 'picked')}
                           className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
                           title="Estudiante subió"
                         >
                           <UserPlus className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => onStudentAction(student, 'absent')}
+                          onClick={() => handleStudentAction(student, 'absent')}
                           className="p-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
                           title="No abordó"
                         >
@@ -132,14 +219,14 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
                     {routeDirection === 'return' && student.status === 'waiting' && (
                       <>
                         <button
-                          onClick={() => onStudentAction(student, 'dropped')}
+                          onClick={() => handleStudentAction(student, 'dropped')}
                           className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
                           title="Estudiante bajó"
                         >
                           <UserMinus className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => onStudentAction(student, 'absent')}
+                          onClick={() => handleStudentAction(student, 'absent')}
                           className="p-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
                           title="No abordó"
                         >
@@ -170,7 +257,7 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
                 <div className="flex items-center gap-2 mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
                   <p className="text-sm text-orange-700">
-                    Debes confirmar el estado de {pendingStudents} estudiante(s) antes de completar la parada.
+                    Debes confirmar el estado de {pendingStudentsCount} estudiante(s) antes de completar la parada.
                   </p>
                 </div>
               )}
@@ -186,8 +273,9 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
             </div>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };
 
