@@ -340,7 +340,7 @@ const Index = () => {
         {/* Route Overview Toggle Button - positioned above Mapbox zoom controls */}
         <button
           onClick={() => setShowRouteOverview(!showRouteOverview)}
-          className={`absolute z-20 right-[10px] bottom-[130px] shadow-lg p-2.5 transition-all duration-300 rounded-lg border
+          className={`absolute z-20 right-[10px] bottom-[150px] shadow-lg p-2.5 transition-all duration-300 rounded-lg border
             ${showRouteOverview 
               ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
               : 'bg-card text-foreground border-border hover:bg-muted'
