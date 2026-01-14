@@ -75,8 +75,8 @@ const ActionBar: React.FC<ActionBarProps> = ({
   return (
     <>
       {/* Main Action Buttons Container */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 max-w-md px-4">
-        <div className="panel-card p-3">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-auto max-w-md">
+        <div className="panel-card px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Complete Stop - shows student list if intermediate with students, else completes directly */}
             <button
