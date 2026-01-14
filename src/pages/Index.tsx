@@ -156,6 +156,35 @@ const Index = () => {
       recordStopCompletion(currentStop);
     }
     
+    const isLastStop = route.currentStopIndex + 1 >= route.stops.length;
+    
+    // If this is the last stop, generate and show report
+    if (isLastStop) {
+      const report = stopTracking();
+      
+      setRoute(prev => ({
+        ...prev,
+        status: 'completed',
+        stops: prev.stops.map((s, i) => 
+          i === prev.currentStopIndex 
+            ? { ...s, status: 'completed' as const, completedAt: new Date() }
+            : s
+        ),
+      }));
+
+      if (report) {
+        setCurrentReport(report);
+        setIsReportModalOpen(true);
+      }
+
+      toast({
+        title: '🏁 Ruta Finalizada',
+        description: '¡Buen trabajo! Todas las paradas completadas.',
+      });
+      
+      return;
+    }
+    
     setRoute(prev => {
       const currentIndex = prev.currentStopIndex;
       const nextIndex = currentIndex + 1;
@@ -166,13 +195,11 @@ const Index = () => {
         return s;
       });
 
-      const isLastStop = nextIndex >= prev.stops.length;
-
       return {
         ...prev,
         stops: updatedStops,
-        currentStopIndex: isLastStop ? currentIndex : nextIndex,
-        status: isLastStop ? 'completed' : 'in_progress',
+        currentStopIndex: nextIndex,
+        status: 'in_progress',
       };
     });
 
@@ -183,7 +210,7 @@ const Index = () => {
       title: '✅ Parada Completada',
       description: 'Continuando a la siguiente parada...',
     });
-  }, [toast, route.stops, route.currentStopIndex, recordStopCompletion]);
+  }, [toast, route.stops, route.currentStopIndex, recordStopCompletion, stopTracking]);
 
   // Handle report incident
   const handleReportIncident = useCallback((type: IncidentType) => {
