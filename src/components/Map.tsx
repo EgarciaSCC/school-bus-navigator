@@ -5,6 +5,7 @@ import { MAPBOX_TOKEN, MAPBOX_STYLE } from '@/config/mapbox';
 import { Stop } from '@/types/route';
 import { useMapboxDirections } from '@/hooks/useMapboxDirections';
 import { useRouteDeviation } from '@/hooks/useRouteDeviation';
+import { useSmoothMarker } from '@/hooks/useSmoothMarker';
 import bus0 from '@/assets/bus-0.png';
 
 interface MapProps {
@@ -34,10 +35,18 @@ const Map: React.FC<MapProps> = ({
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const userMarker = useRef<mapboxgl.Marker | null>(null);
   const stopMarkers = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [approachRouteFetched, setApproachRouteFetched] = useState(false);
+  
+  // Smooth marker animation hook
+  const { setMarker: setBusMarker, updatePosition: updateBusPosition, markerRef: busMarkerRef } = useSmoothMarker({
+    animationDuration: 800, // Smooth 800ms transitions
+  });
+  
+  // Track previous camera position for smooth transitions
+  const lastCameraUpdate = useRef<number>(0);
+  const CAMERA_THROTTLE_MS = 100; // Throttle camera updates to prevent jitter
   
   // Main school route
   const { routeCoordinates, fetchRoute, isLoading: isRouteLoading } = useMapboxDirections();
@@ -278,21 +287,32 @@ const Map: React.FC<MapProps> = ({
     }
   }, [mapLoaded, userLocation, stops, isNavigating, fetchApproachRoute, approachRouteFetched]);
 
-  // Update user location marker with simple bus icon
+  // Update user location marker with smooth animation
   useEffect(() => {
     if (!map.current || !userLocation) return;
 
-    if (userMarker.current) {
-      userMarker.current.setLngLat(userLocation);
+    const now = performance.now();
+
+    if (busMarkerRef.current) {
+      // Use smooth position update instead of direct setLngLat
+      updateBusPosition(userLocation);
     } else {
-      userMarker.current = new mapboxgl.Marker({
+      const marker = new mapboxgl.Marker({
         element: createBusMarkerElement(),
         rotationAlignment: 'viewport',
         pitchAlignment: 'viewport',
       })
         .setLngLat(userLocation)
         .addTo(map.current);
+      
+      setBusMarker(marker);
     }
+
+    // Throttle camera updates to prevent jitter
+    if (now - lastCameraUpdate.current < CAMERA_THROTTLE_MS) {
+      return;
+    }
+    lastCameraUpdate.current = now;
 
     // First person view: follow user and rotate map based on heading
     if (isNavigating && heading !== null) {
@@ -301,9 +321,10 @@ const Map: React.FC<MapProps> = ({
         bearing: heading,
         pitch: 65,
         zoom: NAVIGATION_ZOOM,
-        duration: 1000,
+        duration: 800, // Match marker animation duration
+        easing: (t) => 1 - Math.pow(1 - t, 3), // ease-out cubic
       });
-    } else {
+    } else if (!isNavigating) {
       map.current.flyTo({
         center: userLocation,
         zoom: 18,
@@ -311,7 +332,7 @@ const Map: React.FC<MapProps> = ({
         duration: 1500,
       });
     }
-  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM]);
+  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM, updateBusPosition, setBusMarker, busMarkerRef]);
 
   // Update stop markers
   useEffect(() => {
