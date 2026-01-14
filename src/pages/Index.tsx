@@ -500,6 +500,7 @@ const Index = () => {
           setIsStopSheetOpen(false);
         }}
         canCompleteStop={route.status === 'in_progress' && selectedStop?.id === route.stops[route.currentStopIndex]?.id}
+        busLocation={coordinates}
       />
 
       {/* Add Stop Modal - stays open to add multiple stops */}
