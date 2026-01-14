@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { PanelLeftClose, PanelLeft } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, MapIcon, Navigation } from 'lucide-react';
 import Map from '@/components/Map';
 import RoutePanel from '@/components/RoutePanel';
 import ActionBar from '@/components/ActionBar';
@@ -36,6 +36,7 @@ const Index = () => {
   const [isOffRoute, setIsOffRoute] = useState(false);
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [routeVersion, setRouteVersion] = useState(0);
+  const [showRouteOverview, setShowRouteOverview] = useState(false);
 
   // Smart ETA calculation using Mapbox with intelligent update conditions
   const { nextStopETA, stopETAs } = useSmartETA(
@@ -333,7 +334,27 @@ const Index = () => {
           isOffRoute={isOffRoute}
           onResize={isPanelVisible}
           routeVersion={routeVersion}
+          showOverview={showRouteOverview}
         />
+
+        {/* Route Overview Toggle Button */}
+        <button
+          onClick={() => setShowRouteOverview(!showRouteOverview)}
+          className={`absolute z-20 right-4 shadow-lg p-3 transition-all duration-300 rounded-full border
+            ${showRouteOverview 
+              ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
+              : 'bg-card text-foreground border-border hover:bg-muted'
+            }
+            ${route.status === 'in_progress' && nextStopETA ? 'top-20 sm:top-4' : 'top-4'}
+          `}
+          title={showRouteOverview ? 'Volver a navegación' : 'Ver ruta completa'}
+        >
+          {showRouteOverview ? (
+            <Navigation className="w-5 h-5" />
+          ) : (
+            <MapIcon className="w-5 h-5" />
+          )}
+        </button>
 
         {/* Speed Indicator - positioned based on panel visibility */}
         <div className={`absolute top-4 z-10 transition-all duration-300 ${

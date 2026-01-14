@@ -19,6 +19,7 @@ interface MapProps {
   isOffRoute?: boolean;
   onResize?: boolean; // Trigger resize when this prop changes
   routeVersion?: number; // Triggers route recalculation when changed
+  showOverview?: boolean; // Show full route overview
 }
 
 const Map: React.FC<MapProps> = ({ 
@@ -31,7 +32,8 @@ const Map: React.FC<MapProps> = ({
   onRouteRecalculated,
   isOffRoute: externalIsOffRoute,
   onResize,
-  routeVersion = 0
+  routeVersion = 0,
+  showOverview = false
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -314,6 +316,9 @@ const Map: React.FC<MapProps> = ({
     }
     lastCameraUpdate.current = now;
 
+    // Skip camera updates if showing overview
+    if (showOverview) return;
+
     // First person view: follow user and rotate map based on heading
     if (isNavigating && heading !== null) {
       map.current.easeTo({
@@ -332,7 +337,29 @@ const Map: React.FC<MapProps> = ({
         duration: 1500,
       });
     }
-  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM, updateBusPosition, setBusMarker, busMarkerRef]);
+  }, [userLocation, heading, isNavigating, createBusMarkerElement, NAVIGATION_ZOOM, updateBusPosition, setBusMarker, busMarkerRef, showOverview]);
+
+  // Handle overview mode - show full route
+  useEffect(() => {
+    if (!map.current || !mapLoaded || stops.length < 2) return;
+
+    if (showOverview) {
+      const bounds = new mapboxgl.LngLatBounds();
+      stops.forEach(stop => bounds.extend(stop.coordinates));
+      
+      // Include user location in bounds if available
+      if (userLocation) {
+        bounds.extend(userLocation);
+      }
+
+      map.current.fitBounds(bounds, {
+        padding: { top: 80, bottom: 120, left: 60, right: 60 },
+        pitch: 30,
+        bearing: 0,
+        duration: 1000,
+      });
+    }
+  }, [showOverview, stops, mapLoaded, userLocation]);
 
   // Update stop markers
   useEffect(() => {
