@@ -4,9 +4,9 @@ import { RouteData, Stop } from '@/types/route';
 export const MOCK_STOPS: Stop[] = [
   {
     id: '1',
-    name: 'Colegio San Rafael',
-    address: 'Cra 7 #45-10, Chapinero',
-    coordinates: [-74.0608, 4.6351],
+    name: 'Colegio Liceo cervantez',
+    address: 'Cra 51B #87-99, San Vicente',
+    coordinates: [11.0073367, -74.8760191],
     students: [], // Punto de partida - sin estudiantes
     status: 'pending',
     isTerminal: true, // No modificable
