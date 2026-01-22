@@ -6,16 +6,16 @@ export const MOCK_STOPS: Stop[] = [
     id: '1',
     name: 'Colegio Liceo cervantez',
     address: 'Cra 51B #87-99, San Vicente',
-    coordinates: [11.0073367, -74.8760191],
+    coordinates: [-74.8760191, 11.0073367],
     students: [], // Punto de partida - sin estudiantes
     status: 'pending',
     isTerminal: true, // No modificable
   },
   {
     id: '2',
-    name: 'Parada Parque Nacional',
-    address: 'Cra 7 #36-20',
-    coordinates: [-74.0621, 4.6297],
+    name: 'Casa Familia Rodriguez',
+    address: 'Calle 76 #45-87, Ciudad Jardin',
+    coordinates: [-74.8247257, 10.9957874],
     students: [
       { id: 's3', name: 'Ana Rodríguez', status: 'waiting' },
       { id: 's4', name: 'Carlos López', status: 'waiting' },
@@ -25,9 +25,9 @@ export const MOCK_STOPS: Stop[] = [
   },
   {
     id: '3',
-    name: 'Parada Calle 26',
-    address: 'Cra 7 #26-05',
-    coordinates: [-74.0635, 4.6245],
+    name: 'Parada Calle 59',
+    address: 'Cra. 59 #79-2',
+    coordinates: [-74.8120105, 11.0090702],
     students: [
       { id: 's6', name: 'Diego Hernández', status: 'waiting' },
     ],
@@ -35,9 +35,9 @@ export const MOCK_STOPS: Stop[] = [
   },
   {
     id: '4',
-    name: 'Centro Comercial Gran Estación',
-    address: 'Av. Calle 26 #62-47',
-    coordinates: [-74.0889, 4.6477],
+    name: 'Andalucia 64B',
+    address: 'Cra. 64B #86-2',
+    coordinates: [-74.820099, 11.0153537],
     students: [
       { id: 's7', name: 'Sofía Torres', status: 'waiting' },
       { id: 's8', name: 'Andrés Castro', status: 'waiting' },
@@ -46,9 +46,9 @@ export const MOCK_STOPS: Stop[] = [
   },
   {
     id: '5',
-    name: 'Terminal Norte',
-    address: 'Autopista Norte #175-50',
-    coordinates: [-74.0521, 4.7542],
+    name: 'Colegio Liceo cervantez',
+    address: 'Cra 51B #87-99, San Vicente',
+    coordinates: [-74.8760191, 11.0073367],
     students: [], // Punto de llegada - sin estudiantes
     status: 'pending',
     isTerminal: true, // No modificable
