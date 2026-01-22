@@ -6,7 +6,7 @@ export const MOCK_STOPS: Stop[] = [
     id: '1',
     name: 'Colegio Liceo cervantez',
     address: 'Cra 51B #87-99, San Vicente',
-    coordinates: [-74.8760191, 11.0073367],
+    coordinates: [-74.8318124, 11.0073157],
     students: [], // Punto de partida - sin estudiantes
     status: 'pending',
     isTerminal: true, // No modificable
