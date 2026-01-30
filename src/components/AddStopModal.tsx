@@ -24,8 +24,10 @@ interface AddStopModalProps {
 const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, keepOpenAfterAdd = false }) => {
   const [stopName, setStopName] = useState('');
   const [address, setAddress] = useState('');
+  const [reverseGeocodedAddress, setReverseGeocodedAddress] = useState(''); // Address from reverse geocoding
   const [studentNames, setStudentNames] = useState<string[]>(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showErrors, setShowErrors] = useState(false); // Show validation errors
   
   // Map states
   const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
@@ -107,7 +109,8 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
       
       if (data.features && data.features.length > 0) {
         const placeName = data.features[0].place_name;
-        setAddress(placeName);
+        setReverseGeocodedAddress(placeName);
+        setAddress(placeName); // Update both for display
       }
     } catch (error) {
       console.error('Reverse geocoding error:', error);
@@ -122,10 +125,12 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
     setConfirmedLocation(null);
   };
 
-  // Handle location found from structured input
+  // Handle location found from structured input - trigger reverse geocoding immediately
   const handleLocationFound = (coordinates: [number, number]) => {
     setSelectedLocation(coordinates);
     setShowMap(true);
+    // Immediately do reverse geocoding to get the accurate address
+    reverseGeocode(coordinates);
   };
 
   // Confirm the location
@@ -159,6 +164,7 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
     e.preventDefault();
     
     if (!stopName.trim() || !address.trim() || !confirmedLocation) {
+      setShowErrors(true);
       return;
     }
 
@@ -194,8 +200,10 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
   const resetForm = () => {
     setStopName('');
     setAddress('');
+    setReverseGeocodedAddress('');
     setStudentNames(['']);
     setIsSubmitting(false);
+    setShowErrors(false);
     setSelectedLocation(null);
     setConfirmedLocation(null);
     setShowMap(false);
@@ -229,49 +237,60 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
               onChange={(e) => setStopName(e.target.value)}
               required
               maxLength={100}
-              className="w-full"
+              className={`w-full ${showErrors && !stopName.trim() ? 'border-destructive ring-destructive/20 ring-2' : ''}`}
             />
+            {showErrors && !stopName.trim() && (
+              <p className="text-xs text-destructive">El nombre de la parada es obligatorio</p>
+            )}
           </div>
 
-          {/* Structured Address Input */}
-          <StructuredAddressInput
-            onAddressChange={handleAddressChange}
-            onLocationFound={handleLocationFound}
-            disabled={showMap || !!confirmedLocation}
-            showResults={!showMap && !confirmedLocation}
-            searchEnabled={!showMap && !confirmedLocation}
-            externalAddress={confirmedLocation ? address : undefined}
-          />
-
-          {/* Current Address Display (when confirmed) */}
-          {confirmedLocation && !showMap && (
-            <div className="p-2 bg-muted rounded-lg border">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary shrink-0" />
-                <span className="text-sm font-medium line-clamp-2">{address}</span>
-              </div>
-            </div>
+          {/* Structured Address Input - Only show when no confirmed location */}
+          {!confirmedLocation && !showMap && (
+            <StructuredAddressInput
+              onAddressChange={handleAddressChange}
+              onLocationFound={handleLocationFound}
+              disabled={false}
+              showResults={true}
+              searchEnabled={true}
+            />
           )}
 
-          {/* Confirmed Location Badge */}
+          {/* Show validation error for address/location */}
+          {showErrors && !confirmedLocation && !showMap && (
+            <p className="text-xs text-destructive">Debes seleccionar y confirmar una ubicación en el mapa</p>
+          )}
+
+          {/* Confirmed Location Display */}
           {confirmedLocation && !showMap && (
-            <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
-              <Check className="w-4 h-4 text-primary" />
-              <span className="text-sm text-primary">
-                Ubicación confirmada
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setConfirmedLocation(null);
-                  setShowMap(true);
-                }}
-                className="ml-auto h-6 text-xs"
-              >
-                Ajustar
-              </Button>
+            <div className="space-y-2">
+              {/* Address from reverse geocoding */}
+              <div className="p-3 bg-muted rounded-lg border">
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span className="text-sm font-medium">{reverseGeocodedAddress || address}</span>
+                </div>
+              </div>
+              
+              {/* Confirmation badge with adjust button */}
+              <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
+                <Check className="w-4 h-4 text-primary" />
+                <span className="text-sm text-primary">
+                  Ubicación confirmada
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setConfirmedLocation(null);
+                    setShowMap(true);
+                    setReverseGeocodedAddress(''); // Reset so it re-fetches on adjust
+                  }}
+                  className="ml-auto h-6 text-xs"
+                >
+                  Ajustar
+                </Button>
+              </div>
             </div>
           )}
 
