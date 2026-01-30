@@ -175,9 +175,12 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
                   `}>
                     {renderStopIcon()}
                   </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex-1 min-w-0 max-w-[200px]">
                     <div className="flex items-center gap-1.5">
-                      <p className={`font-semibold text-sm truncate ${isCompleted ? 'text-green-700' : 'text-foreground'}`}>
+                      <p 
+                        className={`font-semibold text-sm truncate ${isCompleted ? 'text-green-700' : 'text-foreground'}`}
+                        title={stop.name}
+                      >
                         {stop.name}
                       </p>
                       {isTerminal && (
@@ -186,7 +189,7 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{stop.address}</p>
+                    <p className="text-xs text-muted-foreground truncate" title={stop.address}>{stop.address}</p>
                     {!isTerminal && (
                       <p className="text-xs text-primary mt-0.5">
                         {stop.students.length} estudiante{stop.students.length !== 1 ? 's' : ''}
