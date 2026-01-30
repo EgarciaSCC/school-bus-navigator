@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, MapPin, Users, Trash2, Search, Check, Loader2, Move } from 'lucide-react';
+import { Plus, MapPin, Users, Trash2, Check, Loader2, Move } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Stop, Student } from '@/types/route';
 import { MAPBOX_TOKEN, MAPBOX_STYLE } from '@/config/mapbox';
 import mapboxgl from 'mapbox-gl';
-
-interface GeocodeResult {
-  place_name: string;
-  center: [number, number];
-}
+import StructuredAddressInput from './StructuredAddressInput';
 
 interface AddStopModalProps {
   open: boolean;
@@ -31,9 +27,7 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
   const [studentNames, setStudentNames] = useState<string[]>(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Geocoding and map states
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
+  // Map states
   const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
   const [confirmedLocation, setConfirmedLocation] = useState<[number, number] | null>(null);
   const [showMap, setShowMap] = useState(false);
@@ -43,7 +37,6 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize map when location is selected
   useEffect(() => {
@@ -123,54 +116,15 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
     }
   }, []);
 
-  // Geocode address (forward geocoding)
-  const searchAddress = useCallback(async (query: string) => {
-    if (query.length < 3) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=co&language=es&limit=5`
-      );
-      const data = await response.json();
-      
-      if (data.features) {
-        setSearchResults(data.features.map((f: any) => ({
-          place_name: f.place_name,
-          center: f.center as [number, number],
-        })));
-      }
-    } catch (error) {
-      console.error('Geocoding error:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
-
-  // Debounced search
+  // Handle address change from structured input
   const handleAddressChange = (value: string) => {
     setAddress(value);
     setConfirmedLocation(null);
-    setShowMap(false);
-    
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    searchTimeoutRef.current = setTimeout(() => {
-      searchAddress(value);
-    }, 300);
   };
 
-  // Select a geocode result
-  const handleSelectResult = (result: GeocodeResult) => {
-    setAddress(result.place_name);
-    setSelectedLocation(result.center);
-    setSearchResults([]);
+  // Handle location found from structured input
+  const handleLocationFound = (coordinates: [number, number]) => {
+    setSelectedLocation(coordinates);
     setShowMap(true);
   };
 
@@ -245,7 +199,6 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
     setSelectedLocation(null);
     setConfirmedLocation(null);
     setShowMap(false);
-    setSearchResults([]);
   };
 
   const handleClose = () => {
@@ -280,72 +233,34 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
             />
           </div>
 
-          {/* Address with Geocoding */}
-          <div className="space-y-2">
-            <Label htmlFor="address" className="text-sm font-medium">
-              Dirección *
-            </Label>
-            <div className="relative">
-              <Input
-                id="address"
-                placeholder="Ej: Calle 123 #45-67, Barrio Centro"
-                value={address}
-                onChange={(e) => handleAddressChange(e.target.value)}
-                required
-                maxLength={200}
-                className="w-full pr-10"
-                disabled={showMap}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                ) : confirmedLocation ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Search className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
+          {/* Structured Address Input */}
+          <StructuredAddressInput
+            onAddressChange={handleAddressChange}
+            onLocationFound={handleLocationFound}
+            disabled={showMap}
+          />
+
+          {/* Confirmed Location Badge */}
+          {confirmedLocation && !showMap && (
+            <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <Check className="w-4 h-4 text-green-600" />
+              <span className="text-sm text-green-700 dark:text-green-400">
+                Ubicación confirmada
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setConfirmedLocation(null);
+                  setShowMap(true);
+                }}
+                className="ml-auto h-6 text-xs"
+              >
+                Ajustar
+              </Button>
             </div>
-
-            {/* Search Results */}
-            {searchResults.length > 0 && !showMap && (
-              <div className="border rounded-lg overflow-hidden bg-card shadow-lg">
-                {searchResults.map((result, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleSelectResult(result)}
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors border-b last:border-b-0 flex items-start gap-2"
-                  >
-                    <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <span className="line-clamp-2">{result.place_name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Confirmed Location Badge */}
-            {confirmedLocation && !showMap && (
-              <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                <Check className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-green-700 dark:text-green-400">
-                  Ubicación confirmada
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setConfirmedLocation(null);
-                    setShowMap(true);
-                  }}
-                  className="ml-auto h-6 text-xs"
-                >
-                  Ajustar
-                </Button>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Map for Location Confirmation */}
           {showMap && selectedLocation && (
