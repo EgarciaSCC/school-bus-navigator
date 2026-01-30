@@ -46,18 +46,18 @@ const Login: React.FC = () => {
                 <img src={isotipoNCA} alt="NCA Transport" className="w-16 h-16 object-contain" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-white">NCA Transport</h1>
-            <p className="text-white/80 text-sm mt-1">Sistema de Gestión de Rutas</p>
+            <h1 className="text-2xl font-bold text-white">NCA App</h1>
+            <p className="text-white/80 text-sm mt-1">Sistema de Gestión Académica</p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          {/* Form *mit={handleSubmit} className="p-8 space-y-6">
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 bg-muted px-4 py-2 rounded-full">
                 <Bus className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">Inicio de Sesión - Conductor</span>
               </div>
-            </div>
+            </div>/}
+          <form onSub
 
             {/* Error Message */}
             {error && (
@@ -145,18 +145,18 @@ const Login: React.FC = () => {
               )}
             </Button>
 
-            {/* Demo credentials hint */}
+            {/* Demo credentials hint 
             <div className="text-center pt-4 border-t border-border">
               <p className="text-xs text-muted-foreground">
                 Credenciales de prueba: <span className="font-medium text-foreground">driver</span> / <span className="font-medium text-foreground">Driver.1234</span>
               </p>
-            </div>
+            </div>*/}
           </form>
         </div>
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 NCA Transport. Todos los derechos reservados.
+          © 2024 NCA Apps. Todos los derechos reservados.
         </p>
       </div>
     </div>
