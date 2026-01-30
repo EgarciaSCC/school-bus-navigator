@@ -50,14 +50,16 @@ const Login: React.FC = () => {
             <p className="text-white/80 text-sm mt-1">Sistema de Gestión Académica</p>
           </div>
 
-          {/* Form *mit={handleSubmit} className="p-8 space-y-6">
-            <div className="text-center mb-6">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            
+            {/*<div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 bg-muted px-4 py-2 rounded-full">
                 <Bus className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">Inicio de Sesión - Conductor</span>
               </div>
-            </div>/}
-          <form onSub
+            </div>*/}
+          
 
             {/* Error Message */}
             {error && (
