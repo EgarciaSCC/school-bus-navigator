@@ -307,6 +307,34 @@ const Index = () => {
     });
   }, [toast, route.stops, recordStudentAction]);
 
+  // Handle add student to a stop
+  const handleAddStudentToStop = useCallback((student: Student) => {
+    if (!selectedStop) return;
+    
+    setRoute(prev => ({
+      ...prev,
+      stops: prev.stops.map(stop => 
+        stop.id === selectedStop.id 
+          ? { ...stop, students: [...stop.students, student] }
+          : stop
+      ),
+    }));
+
+    // Update selected stop to reflect changes
+    setSelectedStop(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        students: [...prev.students, student],
+      };
+    });
+
+    toast({
+      title: '👤 Estudiante Agregado',
+      description: `${student.name} añadido a la parada`,
+    });
+  }, [selectedStop, toast]);
+
   // Handle add new stop - inserts before the last stop (as intermediate stop) and triggers route recalculation
   const handleAddStop = useCallback((stopData: Omit<Stop, 'id' | 'status' | 'completedAt'>) => {
     const newStop: Stop = {
@@ -501,6 +529,7 @@ const Index = () => {
         }}
         canCompleteStop={route.status === 'in_progress' && selectedStop?.id === route.stops[route.currentStopIndex]?.id}
         busLocation={coordinates}
+        onAddStudent={handleAddStudentToStop}
       />
 
       {/* Add Stop Modal - stays open to add multiple stops */}
