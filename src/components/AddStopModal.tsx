@@ -237,15 +237,27 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
           <StructuredAddressInput
             onAddressChange={handleAddressChange}
             onLocationFound={handleLocationFound}
-            disabled={showMap}
+            disabled={showMap || !!confirmedLocation}
             showResults={!showMap && !confirmedLocation}
+            searchEnabled={!showMap && !confirmedLocation}
+            externalAddress={confirmedLocation ? address : undefined}
           />
+
+          {/* Current Address Display (when confirmed) */}
+          {confirmedLocation && !showMap && (
+            <div className="p-2 bg-muted rounded-lg border">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-sm font-medium line-clamp-2">{address}</span>
+              </div>
+            </div>
+          )}
 
           {/* Confirmed Location Badge */}
           {confirmedLocation && !showMap && (
-            <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <Check className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-700 dark:text-green-400">
+            <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
+              <Check className="w-4 h-4 text-primary" />
+              <span className="text-sm text-primary">
                 Ubicación confirmada
               </span>
               <Button
