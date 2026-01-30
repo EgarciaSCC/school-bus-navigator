@@ -21,6 +21,8 @@ interface StructuredAddressInputProps {
   onLocationFound: (coordinates: [number, number]) => void;
   disabled?: boolean;
   showResults?: boolean;
+  searchEnabled?: boolean; // Controls if geocoding search should run
+  externalAddress?: string; // Address set externally (e.g., from reverse geocoding)
 }
 
 type RoadType = 'CL' | 'KR' | 'DG' | 'TV' | 'AV' | 'AU' | 'VI';
@@ -43,6 +45,8 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
   onLocationFound,
   disabled = false,
   showResults = true,
+  searchEnabled = true,
+  externalAddress,
 }) => {
   // Address fields
   const [roadType, setRoadType] = useState<RoadType>('CL');
@@ -109,6 +113,9 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
 
   // Update address and trigger geocoding when fields change
   useEffect(() => {
+    // Skip if we have an external address (from reverse geocoding)
+    if (externalAddress) return;
+    
     const address = buildAddress();
     onAddressChange(address);
 
@@ -116,7 +123,8 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
       clearTimeout(searchTimeoutRef.current);
     }
 
-    if (address.length >= 5) {
+    // Only search if enabled
+    if (searchEnabled && address.length >= 5) {
       searchTimeoutRef.current = setTimeout(() => {
         searchAddress(address);
       }, 500);
@@ -127,14 +135,14 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [buildAddress, onAddressChange, searchAddress]);
+  }, [buildAddress, onAddressChange, searchAddress, searchEnabled, externalAddress]);
 
-  // Clear results when showResults becomes false
+  // Clear results when showResults becomes false or search is disabled
   useEffect(() => {
-    if (!showResults) {
+    if (!showResults || !searchEnabled) {
       setSearchResults([]);
     }
-  }, [showResults]);
+  }, [showResults, searchEnabled]);
 
   const handleSelectResult = (result: GeocodeResult) => {
     onLocationFound(result.center);
