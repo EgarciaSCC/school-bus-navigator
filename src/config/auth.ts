@@ -10,7 +10,7 @@ export const AUTH_CONFIG = {
   //JWT_SECRET: 'NCA-JWT-SecretKey-2024-RouteApp!',
   JWT_SECRET: 'NCA-JWT-SecretKey-2024-AppUsers!',
   JWT_EXPIRATION: '1h', // Token expiration time
-  JWT_ISSUER: 'nca-transport-app',
+  //JWT_ISSUER: 'nca-transport-app',
   JWT_ISSUER: 'nca-userstndr-app', // usuarios estandar
 
   
