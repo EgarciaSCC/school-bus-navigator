@@ -163,7 +163,10 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!stopName.trim() || !address.trim() || !confirmedLocation) {
+    // At least one student name is required
+    const hasStudent = studentNames.some(name => name.trim());
+    
+    if (!stopName.trim() || !address.trim() || !confirmedLocation || !hasStudent) {
       setShowErrors(true);
       return;
     }
@@ -283,8 +286,10 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
                   size="sm"
                   onClick={() => {
                     setConfirmedLocation(null);
-                    setShowMap(true);
-                    setReverseGeocodedAddress(''); // Reset so it re-fetches on adjust
+                    setShowMap(false); // Hide map to allow editing inputs again
+                    setSelectedLocation(null);
+                    setAddress('');
+                    setReverseGeocodedAddress(''); // Reset so user can re-enter address
                   }}
                   className="ml-auto h-6 text-xs"
                 >
@@ -355,7 +360,7 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    Estudiantes
+                    Estudiantes *
                   </Label>
                   <Button
                     type="button"
@@ -377,7 +382,7 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
                         value={name}
                         onChange={(e) => handleStudentNameChange(index, e.target.value)}
                         maxLength={100}
-                        className="flex-1"
+                        className={`flex-1 ${showErrors && !studentNames.some(n => n.trim()) ? 'border-destructive ring-destructive/20 ring-2' : ''}`}
                       />
                       {studentNames.length > 1 && (
                         <Button
@@ -393,9 +398,13 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Puedes agregar múltiples estudiantes para esta parada
-                </p>
+                {showErrors && !studentNames.some(n => n.trim()) ? (
+                  <p className="text-xs text-destructive">Debes agregar al menos un estudiante</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Puedes agregar múltiples estudiantes para esta parada
+                  </p>
+                )}
               </div>
 
               {/* Actions */}
