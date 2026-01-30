@@ -20,6 +20,7 @@ interface StructuredAddressInputProps {
   onAddressChange: (address: string) => void;
   onLocationFound: (coordinates: [number, number]) => void;
   disabled?: boolean;
+  showResults?: boolean;
 }
 
 type RoadType = 'CL' | 'KR' | 'DG' | 'TV' | 'AV' | 'AU' | 'VI';
@@ -41,6 +42,7 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
   onAddressChange,
   onLocationFound,
   disabled = false,
+  showResults = true,
 }) => {
   // Address fields
   const [roadType, setRoadType] = useState<RoadType>('CL');
@@ -297,7 +299,7 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
       )}
 
       {/* Search Results */}
-      {searchResults.length > 0 && (
+      {showResults && searchResults.length > 0 && (
         <div className="border rounded-lg overflow-hidden bg-card shadow-lg">
           <div className="px-3 py-2 bg-muted border-b">
             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
