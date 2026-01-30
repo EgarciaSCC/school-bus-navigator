@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { MapPin, Users, CheckCircle, UserPlus, UserMinus, X, UserX, AlertCircle, AlertTriangle } from 'lucide-react';
+import { MapPin, Users, CheckCircle, UserPlus, UserMinus, X, UserX, AlertCircle, AlertTriangle, Plus } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Stop, Student } from '@/types/route';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,7 @@ interface StopDetailSheetProps {
   onCompleteStop?: () => void;
   canCompleteStop?: boolean;
   busLocation?: [number, number] | null;
+  onAddStudent?: (student: Student) => void;
 }
 
 // Calculate distance between two coordinates in km using Haversine formula
@@ -52,10 +54,14 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
   onCompleteStop,
   canCompleteStop = false,
   busLocation,
+  onAddStudent,
 }) => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ student: Student; action: 'picked' | 'dropped' | 'absent' } | null>(null);
   const [distanceToStop, setDistanceToStop] = useState<number>(0);
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [addStudentError, setAddStudentError] = useState('');
   if (!stop) return null;
 
   // Check if all students have been processed (picked/dropped/absent)
@@ -139,14 +145,81 @@ const StopDetailSheet: React.FC<StopDetailSheetProps> = ({
         </SheetHeader>
 
         <div className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold text-lg">
-              Estudiantes ({stop.students.length})
-            </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-lg">
+                Estudiantes ({stop.students.length})
+              </h3>
+            </div>
+            {onAddStudent && !stop.isTerminal && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddingStudent(true)}
+                className="h-7 text-xs gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                Agregar
+              </Button>
+            )}
           </div>
 
-          {stop.students.length === 0 ? (
+          {/* Add Student Form */}
+          {isAddingStudent && (
+            <div className="mb-4 p-4 bg-muted/50 rounded-xl border border-border">
+              <p className="text-sm font-medium mb-2">Nuevo Estudiante</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nombre del estudiante"
+                  value={newStudentName}
+                  onChange={(e) => {
+                    setNewStudentName(e.target.value);
+                    setAddStudentError('');
+                  }}
+                  className={addStudentError ? 'border-destructive' : ''}
+                  maxLength={100}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (!newStudentName.trim()) {
+                      setAddStudentError('Requerido');
+                      return;
+                    }
+                    const newStudent: Student = {
+                      id: `student-${Date.now()}`,
+                      name: newStudentName.trim(),
+                      status: 'waiting',
+                    };
+                    onAddStudent(newStudent);
+                    setNewStudentName('');
+                    setIsAddingStudent(false);
+                  }}
+                  className="shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingStudent(false);
+                    setNewStudentName('');
+                    setAddStudentError('');
+                  }}
+                  className="shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              {addStudentError && (
+                <p className="text-xs text-destructive mt-1">{addStudentError}</p>
+              )}
+            </div>
+          )}
+
+          {stop.students.length === 0 && !isAddingStudent ? (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
               <p>No hay estudiantes en esta parada</p>
