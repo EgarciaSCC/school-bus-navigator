@@ -238,6 +238,7 @@ const AddStopModal: React.FC<AddStopModalProps> = ({ open, onClose, onAddStop, k
             onAddressChange={handleAddressChange}
             onLocationFound={handleLocationFound}
             disabled={showMap}
+            showResults={!showMap && !confirmedLocation}
           />
 
           {/* Confirmed Location Badge */}
