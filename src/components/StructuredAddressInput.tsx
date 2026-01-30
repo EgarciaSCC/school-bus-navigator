@@ -129,6 +129,13 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
     };
   }, [buildAddress, onAddressChange, searchAddress]);
 
+  // Clear results when showResults becomes false
+  useEffect(() => {
+    if (!showResults) {
+      setSearchResults([]);
+    }
+  }, [showResults]);
+
   const handleSelectResult = (result: GeocodeResult) => {
     onLocationFound(result.center);
     setSearchResults([]);
