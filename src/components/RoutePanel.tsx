@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
-import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical, Flag, Home } from 'lucide-react';
+import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical, Flag, Home, LogOut } from 'lucide-react';
 import { RouteData, Stop } from '@/types/route';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useAuth } from '@/contexts/AuthContext';
 import isotipoNCA from '@/assets/isotipo-NCA.png';
 
 interface RoutePanelProps {
@@ -14,6 +26,7 @@ interface RoutePanelProps {
 }
 
 const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute, onAddStop, onReorderStops }) => {
+  const { user, logout } = useAuth();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const completedStops = route.stops.filter(s => s.status === 'completed').length;
@@ -29,10 +42,44 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
       <div className="p-5 border-b border-border shrink-0">
         <div className="flex items-center gap-3 mb-4">
           <img src={isotipoNCA} alt="NCA" className="w-10 h-10 object-contain shrink-0" />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-lg font-bold text-foreground truncate">{route.name}</h1>
-            <p className="text-sm text-muted-foreground">Conductor Activo</p>
+            <p className="text-sm text-muted-foreground truncate">
+              {user?.name || 'Conductor Activo'}
+            </p>
           </div>
+          
+          {/* Logout Button */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Cerrar Sesión?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Estás a punto de cerrar tu sesión. Si tienes una ruta en progreso, 
+                  asegúrate de finalizarla antes de salir.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={logout}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Cerrar Sesión
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {/* Stats */}
