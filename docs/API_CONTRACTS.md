@@ -142,6 +142,28 @@ interface ValidateErrorResponse {
 
 ## 2. Rutas
 
+### Reglas de Negocio - Rutas
+
+| Regla | Descripción |
+|-------|-------------|
+| **Máximo de rutas por conductor** | Un conductor puede tener máximo 2 rutas en la mañana (primera jornada) y 2 rutas en la tarde (segunda jornada), para un total de **máximo 4 rutas por día**. |
+| **Máximo de rutas por bus** | Un bus escolar solo puede estar asignado a **máximo 4 rutas por día** (misma distribución que conductores). |
+| **Sin superposición de horarios** | Un conductor, coordinador o bus **no pueden estar asignados a más de una ruta en el mismo horario**. El sistema debe validar conflictos de horario antes de permitir asignaciones. |
+| **Dirección de ruta obligatoria** | Cada ruta debe definir explícitamente si es para **recoger estudiantes** (`to_school`) o **llevar estudiantes a casa** (`from_school`). |
+
+### Tipos de Programación de Rutas
+
+Las rutas pueden programarse de las siguientes formas:
+
+| Tipo | Descripción | Ejemplo |
+|------|-------------|---------|
+| `school_calendar` | Todos los días escolares según calendario oficial | Lunes a Viernes durante período escolar |
+| `specific_weekdays` | Días específicos de la semana seleccionados | Solo Lunes, Miércoles y Viernes |
+| `specific_months` | Meses específicos del calendario escolar | Febrero a Junio, Agosto a Noviembre |
+| `custom` | Fechas personalizadas seleccionadas manualmente | Fechas específicas para eventos |
+
+---
+
 ### 2.1 Obtener Ruta Activa del Conductor
 
 **Prompt para construir el endpoint:**
@@ -275,6 +297,190 @@ interface FinishRouteResponse {
   success: true;
   message: string;
   report: RouteReport;
+}
+```
+
+### 2.4 Crear Ruta
+
+**Prompt para construir el endpoint:**
+```
+Crear endpoint POST /api/routes que:
+- Cree una nueva ruta con programación de calendario
+- Valide que el conductor no exceda 4 rutas diarias (2 mañana + 2 tarde)
+- Valide que el bus no exceda 4 rutas diarias
+- Valide que no haya conflictos de horario con otras rutas asignadas
+- Asigne conductor, bus y coordinador sin superposición de horarios
+- Requiera dirección de ruta (recoger o llevar estudiantes)
+```
+
+**Endpoint:** `POST /api/routes`
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```typescript
+interface CreateRouteRequest {
+  name: string;
+  direction: 'to_school' | 'from_school';
+  shift: 'morning' | 'afternoon';
+  
+  // Asignaciones
+  driverId: string;
+  busId: string;
+  coordinatorId?: string;
+  
+  // Programación
+  schedule: {
+    type: 'school_calendar' | 'specific_weekdays' | 'specific_months' | 'custom';
+    
+    // Para 'specific_weekdays'
+    weekdays?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday')[];
+    
+    // Para 'specific_months'
+    months?: number[];  // 1-12
+    
+    // Para 'custom'
+    customDates?: string[];  // Array de fechas ISO
+    
+    // Período de validez
+    startDate: string;  // ISO date
+    endDate: string;    // ISO date
+  };
+  
+  // Horarios
+  estimatedStartTime: string;  // "HH:MM"
+  estimatedEndTime: string;    // "HH:MM"
+  
+  // Paradas iniciales (opcional)
+  stops?: {
+    name: string;
+    address: string;
+    coordinates: { lat: number; lng: number };
+    isTerminal: boolean;
+  }[];
+}
+```
+
+**Response Success (201):**
+```typescript
+interface CreateRouteResponse {
+  success: true;
+  message: string;
+  route: {
+    id: string;
+    name: string;
+    direction: 'to_school' | 'from_school';
+    shift: 'morning' | 'afternoon';
+    schedule: RouteSchedule;
+    driver: { id: string; name: string };
+    bus: { id: string; plate: string };
+    coordinator?: { id: string; name: string };
+  };
+}
+```
+
+**Response Error (409 - Conflicto):**
+```typescript
+interface CreateRouteConflictResponse {
+  success: false;
+  message: string;  // "El conductor ya tiene 2 rutas asignadas en la mañana"
+  conflicts: {
+    type: 'driver_limit' | 'bus_limit' | 'schedule_overlap';
+    entity: string;  // ID del conductor, bus o coordinador
+    existingRouteId?: string;
+    details: string;
+  }[];
+}
+```
+
+**Validaciones:**
+- `name`: requerido, 3-100 caracteres
+- `direction`: requerido, debe ser 'to_school' o 'from_school'
+- `shift`: requerido, debe ser 'morning' o 'afternoon'
+- `driverId`: requerido, conductor debe existir y estar activo
+- `busId`: requerido, bus debe existir y estar operativo
+- El conductor no puede tener más de 2 rutas en el mismo turno (mañana/tarde)
+- El conductor no puede tener más de 4 rutas totales en un día
+- El bus no puede tener más de 4 rutas totales en un día
+- No puede haber superposición de horarios para el mismo conductor, bus o coordinador
+- `schedule.type`: requerido
+- `schedule.weekdays`: requerido si type es 'specific_weekdays', mínimo 1 día
+- `schedule.months`: requerido si type es 'specific_months', valores 1-12
+- `schedule.customDates`: requerido si type es 'custom', fechas válidas futuras
+
+---
+
+### 2.5 Validar Disponibilidad
+
+**Prompt para construir el endpoint:**
+```
+Crear endpoint POST /api/routes/validate-availability que:
+- Verifique disponibilidad de conductor, bus y coordinador
+- Retorne conflictos de horario si existen
+- Calcule cuántas rutas tiene asignadas cada entidad
+- Sugiera horarios alternativos si hay conflictos
+```
+
+**Endpoint:** `POST /api/routes/validate-availability`
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```typescript
+interface ValidateAvailabilityRequest {
+  date: string;  // ISO date
+  shift: 'morning' | 'afternoon';
+  startTime: string;  // "HH:MM"
+  endTime: string;    // "HH:MM"
+  driverId?: string;
+  busId?: string;
+  coordinatorId?: string;
+}
+```
+
+**Response Success (200):**
+```typescript
+interface ValidateAvailabilityResponse {
+  available: boolean;
+  driver?: {
+    id: string;
+    name: string;
+    morningRoutes: number;  // 0-2
+    afternoonRoutes: number;  // 0-2
+    totalRoutes: number;  // 0-4
+    canAssignMore: boolean;
+    conflicts: ScheduleConflict[];
+  };
+  bus?: {
+    id: string;
+    plate: string;
+    totalRoutes: number;
+    canAssignMore: boolean;
+    conflicts: ScheduleConflict[];
+  };
+  coordinator?: {
+    id: string;
+    name: string;
+    conflicts: ScheduleConflict[];
+  };
+  suggestedAlternatives?: {
+    startTime: string;
+    endTime: string;
+    reason: string;
+  }[];
+}
+
+interface ScheduleConflict {
+  routeId: string;
+  routeName: string;
+  startTime: string;
+  endTime: string;
 }
 ```
 
@@ -880,6 +1086,59 @@ export const locationUpdateSchema = z.object({
   speed: z.number().min(0).max(200).optional(),
   heading: z.number().min(0).max(360).optional(),
   timestamp: z.string().datetime(),
+});
+
+// schemas/routes.ts
+export const createRouteSchema = z.object({
+  name: z.string()
+    .min(3, 'Nombre debe tener al menos 3 caracteres')
+    .max(100, 'Nombre muy largo'),
+  direction: z.enum(['to_school', 'from_school'], {
+    errorMap: () => ({ message: 'Debe especificar dirección de ruta' })
+  }),
+  shift: z.enum(['morning', 'afternoon'], {
+    errorMap: () => ({ message: 'Debe especificar jornada' })
+  }),
+  driverId: z.string().uuid('ID de conductor inválido'),
+  busId: z.string().uuid('ID de bus inválido'),
+  coordinatorId: z.string().uuid().optional(),
+  schedule: z.object({
+    type: z.enum(['school_calendar', 'specific_weekdays', 'specific_months', 'custom']),
+    weekdays: z.array(z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])).optional(),
+    months: z.array(z.number().min(1).max(12)).optional(),
+    customDates: z.array(z.string().datetime()).optional(),
+    startDate: z.string().datetime(),
+    endDate: z.string().datetime(),
+  }).refine(
+    data => {
+      if (data.type === 'specific_weekdays') return data.weekdays && data.weekdays.length > 0;
+      if (data.type === 'specific_months') return data.months && data.months.length > 0;
+      if (data.type === 'custom') return data.customDates && data.customDates.length > 0;
+      return true;
+    },
+    { message: 'Configuración de programación incompleta' }
+  ),
+  estimatedStartTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
+  estimatedEndTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
+  stops: z.array(z.object({
+    name: z.string().min(3).max(100),
+    address: z.string().min(5).max(200),
+    coordinates: z.object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    }),
+    isTerminal: z.boolean(),
+  })).optional(),
+});
+
+export const validateAvailabilitySchema = z.object({
+  date: z.string().datetime(),
+  shift: z.enum(['morning', 'afternoon']),
+  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  driverId: z.string().uuid().optional(),
+  busId: z.string().uuid().optional(),
+  coordinatorId: z.string().uuid().optional(),
 });
 
 // schemas/students.ts
