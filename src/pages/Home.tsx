@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bus, 
@@ -36,25 +36,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MOCK_DRIVER_ROUTES, DriverRoutePreview } from '@/data/mockDriverRoutes';
+import { 
+  getDriverRoutesToday, 
+  DriverRoutesTodayResponse, 
+  DriverRoutePreview 
+} from '@/services/driverService';
 import logoNCA from '@/assets/isotipo-NCA.png';
 
 const Home = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   
-  // Simular carga de datos (en producción vendría de la API)
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [driverRoutes] = React.useState(MOCK_DRIVER_ROUTES);
+  const [isLoading, setIsLoading] = useState(true);
+  const [driverRoutes, setDriverRoutes] = useState<DriverRoutesTodayResponse | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<DriverRoutePreview | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  React.useEffect(() => {
-    // Simular llamada a API
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getDriverRoutesToday();
+        setDriverRoutes(data);
+      } catch (error) {
+        console.error('Error fetching routes:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRoutes();
   }, []);
 
   const handleViewRoutePreview = (route: DriverRoutePreview) => {
@@ -117,7 +128,7 @@ const Home = () => {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={logout}>Cerrar Sesión</AlertDialogAction>
+                <AlertDialogAction onClick={() => logout()}>Cerrar Sesión</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -132,7 +143,7 @@ const Home = () => {
             <h2 className="text-lg font-semibold">Ruta Asignada</h2>
           </div>
 
-          {driverRoutes.activeRoute ? (
+          {driverRoutes?.activeRoute ? (
             <Card className="border-primary/50 bg-primary/5">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
@@ -190,9 +201,9 @@ const Home = () => {
             <h2 className="text-lg font-semibold">Rutas Programadas Hoy</h2>
           </div>
 
-          {driverRoutes.scheduledRoutes.length > 0 ? (
+          {(driverRoutes?.scheduledRoutes?.length ?? 0) > 0 ? (
             <div className="space-y-3">
-              {driverRoutes.scheduledRoutes.map((route) => (
+              {driverRoutes?.scheduledRoutes?.map((route) => (
                 <Card key={route.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between">
@@ -246,16 +257,16 @@ const Home = () => {
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-semibold">Rutas Completadas Hoy</h2>
-            {driverRoutes.completedRoutes.length > 0 && (
+            {(driverRoutes?.completedRoutes?.length ?? 0) > 0 && (
               <Badge variant="outline" className="ml-auto">
-                {driverRoutes.completedRoutes.length} completadas
+                {driverRoutes?.completedRoutes?.length} completadas
               </Badge>
             )}
           </div>
 
-          {driverRoutes.completedRoutes.length > 0 ? (
+          {(driverRoutes?.completedRoutes?.length ?? 0) > 0 ? (
             <div className="space-y-3">
-              {driverRoutes.completedRoutes.map((route) => (
+              {driverRoutes?.completedRoutes?.map((route) => (
                 <Card key={route.id} className="bg-muted/30">
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between">

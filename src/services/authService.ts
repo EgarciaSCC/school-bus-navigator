@@ -1,14 +1,8 @@
-import { MOCK_USERS, MockUser } from '@/data/mockUsers';
-import { encryptAES256, decryptAES256, createMockJWT, verifyMockJWT } from '@/utils/crypto';
+import { encryptAES256 } from '@/utils/crypto';
 import { AUTH_CONFIG } from '@/config/auth';
+import { API_ENDPOINTS, buildApiUrl } from '@/config/api';
 
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  token?: string;
-  user?: Omit<MockUser, 'password'>;
-}
-
+// Types based on API_CONTRACTS.md
 export interface AuthUser {
   id: string;
   username: string;
@@ -17,59 +11,119 @@ export interface AuthUser {
   email: string;
 }
 
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  token?: string;
+  user?: AuthUser;
+}
+
+export interface LogoutResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ValidateResponse {
+  valid: boolean;
+  user?: AuthUser;
+  message?: string;
+}
+
 /**
- * Simulates a login API request with encrypted credentials
+ * Login API request with encrypted credentials
+ * Endpoint: POST /api/auth/login
  */
-export const mockLoginRequest = async (
+export const loginRequest = async (
   username: string,
   password: string
-): Promise<AuthResponse> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  // Encrypt credentials (in real scenario, this would happen before sending to server)
+): Promise<LoginResponse> => {
+  // Encrypt credentials before sending to server
   const encryptedUsername = encryptAES256(username);
   const encryptedPassword = encryptAES256(password);
   
-  console.log('Encrypted credentials:', {
-    username: encryptedUsername,
-    password: encryptedPassword,
-  });
-  
-  // Simulate server-side decryption and validation
-  const decryptedUsername = decryptAES256(encryptedUsername);
-  const decryptedPassword = decryptAES256(encryptedPassword);
-  
-  // Find user in mock database
-  const user = MOCK_USERS.find(
-    u => u.username === decryptedUsername && u.password === decryptedPassword
-  );
-  
-  if (!user) {
+  try {
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.LOGIN), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: encryptedUsername,
+        password: encryptedPassword,
+      }),
+    });
+    
+    const data = await response.json();
+    
+    return {
+      success: data.success,
+      message: data.message,
+      token: data.token,
+      user: data.user,
+    };
+  } catch (error) {
+    console.error('Login error:', error);
     return {
       success: false,
-      message: 'Usuario o contraseña incorrectos',
+      message: 'Error de conexión con el servidor',
     };
   }
+};
+
+/**
+ * Logout API request
+ * Endpoint: POST /api/auth/logout
+ */
+export const logoutRequest = async (): Promise<LogoutResponse> => {
+  const token = getStoredToken();
   
-  // Create JWT token
-  const token = createMockJWT({
-    sub: user.id,
-    username: user.username,
-    role: user.role,
-    name: user.name,
-    email: user.email,
-  });
+  if (!token) {
+    return { success: true, message: 'No hay sesión activa' };
+  }
   
-  // Return user data without password
-  const { password: _, ...userWithoutPassword } = user;
+  try {
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.LOGOUT), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Even if API fails, we should clear local storage
+    return { success: true, message: 'Sesión cerrada localmente' };
+  }
+};
+
+/**
+ * Validate session API request
+ * Endpoint: GET /api/auth/validate
+ */
+export const validateSessionRequest = async (): Promise<ValidateResponse> => {
+  const token = getStoredToken();
   
-  return {
-    success: true,
-    message: 'Inicio de sesión exitoso',
-    token,
-    user: userWithoutPassword,
-  };
+  if (!token) {
+    return { valid: false, message: 'No hay token almacenado' };
+  }
+  
+  try {
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.VALIDATE), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Validate session error:', error);
+    return { valid: false, message: 'Error de conexión' };
+  }
 };
 
 /**
@@ -87,30 +141,11 @@ export const storeToken = (token: string): void => {
 };
 
 /**
- * Remove stored authentication token
+ * Remove stored authentication token and session
  */
 export const removeToken = (): void => {
   localStorage.removeItem(AUTH_CONFIG.TOKEN_STORAGE_KEY);
   localStorage.removeItem(AUTH_CONFIG.SESSION_STORAGE_KEY);
-};
-
-/**
- * Validate stored token and return user if valid
- */
-export const validateStoredSession = (): AuthUser | null => {
-  const token = getStoredToken();
-  if (!token) return null;
-  
-  const { valid, payload } = verifyMockJWT(token);
-  if (!valid || !payload) return null;
-  
-  return {
-    id: payload.sub,
-    username: payload.username,
-    role: payload.role,
-    name: payload.name,
-    email: payload.email,
-  };
 };
 
 /**
