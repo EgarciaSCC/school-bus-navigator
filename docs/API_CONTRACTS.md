@@ -7,12 +7,13 @@ Este documento define las especificaciones para construir cada endpoint del back
 ## Índice
 
 1. [Autenticación](#1-autenticación)
-2. [Rutas](#2-rutas)
-3. [Paradas](#3-paradas)
-4. [Estudiantes](#4-estudiantes)
-5. [Incidentes](#5-incidentes)
-6. [Reportes](#6-reportes)
-7. [Geolocalización](#7-geolocalización)
+2. [Dashboard del Conductor](#2-dashboard-del-conductor)
+3. [Rutas](#3-rutas)
+4. [Paradas](#4-paradas)
+5. [Estudiantes](#5-estudiantes)
+6. [Incidentes](#6-incidentes)
+7. [Reportes](#7-reportes)
+8. [Geolocalización](#8-geolocalización)
 
 ---
 
@@ -140,7 +141,109 @@ interface ValidateErrorResponse {
 
 ---
 
-## 2. Rutas
+## 2. Dashboard del Conductor
+
+### 2.1 Obtener Rutas del Día
+
+**Prompt para construir el endpoint:**
+```
+Crear endpoint GET /api/driver/routes/today que:
+- Identifique al conductor por el JWT
+- Retorne todas las rutas asignadas para el día actual
+- Agrupe las rutas en: activa (puede iniciar ahora), programadas (futuras) y completadas
+- Incluya resumen de cada ruta sin detalles de paradas
+- Ordene por hora de inicio
+```
+
+**Endpoint:** `GET /api/driver/routes/today`
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response Success (200):**
+```typescript
+interface DriverRoutesTodayResponse {
+  driverId: string;
+  driverName: string;
+  date: string;  // ISO date (YYYY-MM-DD)
+  activeRoute: DriverRoutePreview | null;
+  scheduledRoutes: DriverRoutePreview[];
+  completedRoutes: DriverRoutePreview[];
+}
+
+interface DriverRoutePreview {
+  id: string;
+  name: string;
+  direction: 'to_school' | 'from_school';
+  status: 'not_started' | 'in_progress' | 'completed';
+  estimatedStartTime: string;  // "HH:MM"
+  estimatedEndTime: string;    // "HH:MM"
+  actualStartTime?: string;    // "HH:MM" - solo para completadas
+  actualEndTime?: string;      // "HH:MM" - solo para completadas
+  stopsCount: number;
+  studentsCount: number;
+  studentsTransported?: number;  // solo para completadas
+  busPlate: string;
+  busId: string;
+}
+```
+
+**Lógica de Negocio:**
+- `activeRoute`: La primera ruta del día cuyo horario de inicio está dentro de los próximos 30 minutos o ya pasó pero no ha iniciado
+- `scheduledRoutes`: Rutas con horario de inicio mayor a 30 minutos en el futuro
+- `completedRoutes`: Rutas con status 'completed'
+
+**Validaciones:**
+- Token JWT válido y no expirado
+- Usuario debe tener rol 'driver'
+
+---
+
+### 2.2 Obtener Historial de Rutas
+
+**Prompt para construir el endpoint:**
+```
+Crear endpoint GET /api/driver/routes/history que:
+- Retorne rutas completadas con paginación
+- Permita filtrar por rango de fechas
+- Incluya estadísticas resumidas por ruta
+```
+
+**Endpoint:** `GET /api/driver/routes/history`
+
+**Query Parameters:**
+```typescript
+interface HistoryQueryParams {
+  startDate?: string;  // ISO date
+  endDate?: string;    // ISO date
+  page?: number;       // default: 1
+  limit?: number;      // default: 20, max: 50
+}
+```
+
+**Response Success (200):**
+```typescript
+interface DriverRouteHistoryResponse {
+  routes: DriverRoutePreview[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  summary: {
+    totalRoutes: number;
+    totalStudentsTransported: number;
+    averageDuration: number;  // minutos
+  };
+}
+```
+
+---
+
+## 3. Rutas
 
 ### Reglas de Negocio - Rutas
 
