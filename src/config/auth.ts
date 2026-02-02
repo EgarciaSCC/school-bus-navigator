@@ -6,8 +6,8 @@ export const AUTH_CONFIG = {
   // IMPORTANT: These must match the backend configuration
   // Key must be exactly 32 bytes for AES-256
   // IV must be exactly 16 bytes for CBC mode
-  AES_SECRET_KEY: 'NCA-Appmobile-2024-SecKey-256!!', // Exactly 32 characters
-  AES_IV: 'NCA-IV-2024-16B!', // Exactly 16 characters
+  AES_SECRET_KEY: 'NCA-AppMobile-2024-Secure-Key', // Exactly 32 characters
+  AES_IV: 'NCA-IV-2024-16B', // Exactly 16 characters
   
   // JWT configuration (for reference, handled by backend)
   JWT_EXPIRATION: '1h',
