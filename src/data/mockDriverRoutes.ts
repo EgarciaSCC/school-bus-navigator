@@ -7,7 +7,7 @@ export interface DriverRoutePreview {
   id: string;
   name: string;
   direction: 'to_school' | 'from_school';
-  status: 'not_started' | 'in_progress' | 'completed';
+  status: 'not_started' | 'in_progress' | 'completed' | 'scheduled';
   estimatedStartTime: string;
   estimatedEndTime: string;
   actualStartTime?: string;
@@ -56,7 +56,7 @@ export const MOCK_DRIVER_ROUTES: DriverRoutesResponse = {
       id: 'route-afternoon-1',
       name: 'Ruta Norte - Tarde',
       direction: 'from_school',
-      status: 'not_started',
+      status: 'scheduled',
       estimatedStartTime: '14:00',
       estimatedEndTime: '15:30',
       stopsCount: 8,
@@ -68,7 +68,7 @@ export const MOCK_DRIVER_ROUTES: DriverRoutesResponse = {
       id: 'route-afternoon-2',
       name: 'Ruta Sur - Tarde',
       direction: 'from_school',
-      status: 'not_started',
+      status: 'scheduled',
       estimatedStartTime: '15:45',
       estimatedEndTime: '17:00',
       stopsCount: 6,

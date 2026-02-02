@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical, Flag, Home, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical, Flag, Home, LogOut, LayoutDashboard } from 'lucide-react';
 import { RouteData, Stop } from '@/types/route';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ interface RoutePanelProps {
 }
 
 const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute, onAddStop, onReorderStops }) => {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -40,7 +42,7 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
     <div className="h-full flex flex-col bg-card overflow-hidden">
       {/* Header */}
       <div className="p-5 border-b border-border shrink-0">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 pr-10 sm:pr-0">
           <img src={isotipoNCA} alt="NCA" className="w-10 h-10 object-contain shrink-0" />
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-bold text-foreground truncate">{route.name}</h1>
@@ -261,6 +263,21 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
           >
             <Play className="w-5 h-5" />
             Iniciar Ruta
+          </Button>
+        </div>
+      )}
+
+      {/* Go to Dashboard Button - Only show when route is completed */}
+      {route.status === 'completed' && (
+        <div className="p-5 border-t border-border shrink-0">
+          <Button
+            onClick={() => navigate('/')}
+            className="w-full h-12 text-base font-semibold gap-2"
+            size="lg"
+            variant="outline"
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            Volver al Dashboard
           </Button>
         </div>
       )}

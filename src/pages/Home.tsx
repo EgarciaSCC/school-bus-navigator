@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bus, 
@@ -8,9 +8,10 @@ import {
   Calendar,
   CheckCircle2,
   PlayCircle,
-  ChevronRight,
   Route,
-  LogOut
+  LogOut,
+  FileText,
+  Eye
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { MOCK_DRIVER_ROUTES } from '@/data/mockDriverRoutes';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { MOCK_DRIVER_ROUTES, DriverRoutePreview } from '@/data/mockDriverRoutes';
 import logoNCA from '@/assets/isotipo-NCA.png';
 
 const Home = () => {
@@ -38,6 +46,8 @@ const Home = () => {
   // Simular carga de datos (en producción vendría de la API)
   const [isLoading, setIsLoading] = React.useState(true);
   const [driverRoutes] = React.useState(MOCK_DRIVER_ROUTES);
+  const [selectedRoute, setSelectedRoute] = useState<DriverRoutePreview | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   React.useEffect(() => {
     // Simular llamada a API
@@ -46,6 +56,11 @@ const Home = () => {
     }, 800);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleViewRoutePreview = (route: DriverRoutePreview) => {
+    setSelectedRoute(route);
+    setIsPreviewOpen(true);
+  };
 
   const handleStartRoute = (routeId: string) => {
     // Navegar a la página de navegación con la ruta seleccionada
@@ -203,7 +218,14 @@ const Home = () => {
                           </span>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewRoutePreview(route)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Ver
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -253,8 +275,13 @@ const Home = () => {
                           <span>{route.studentsTransported}/{route.studentsCount} estudiantes</span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        Ver Reporte
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewRoutePreview(route)}
+                      >
+                        <FileText className="w-4 h-4 mr-1" />
+                        Reporte
                       </Button>
                     </div>
                   </CardContent>
@@ -271,6 +298,108 @@ const Home = () => {
           )}
         </section>
       </main>
+
+      {/* Route Preview/Report Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedRoute?.status === 'completed' ? (
+                <>
+                  <FileText className="w-5 h-5 text-primary" />
+                  Reporte de Ruta
+                </>
+              ) : (
+                <>
+                  <Eye className="w-5 h-5 text-primary" />
+                  Vista Previa de Ruta
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRoute?.name} - {selectedRoute && getDirectionLabel(selectedRoute.direction)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRoute && (
+            <div className="space-y-4">
+              {/* Route Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Horario</p>
+                  <p className="font-medium">
+                    {formatTime(selectedRoute.actualStartTime || selectedRoute.estimatedStartTime)} - {formatTime(selectedRoute.actualEndTime || selectedRoute.estimatedEndTime)}
+                  </p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Bus</p>
+                  <p className="font-medium">{selectedRoute.busPlate}</p>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-primary/10 rounded-lg">
+                  <MapPin className="w-5 h-5 mx-auto mb-1 text-primary" />
+                  <p className="text-lg font-bold">{selectedRoute.stopsCount}</p>
+                  <p className="text-xs text-muted-foreground">Paradas</p>
+                </div>
+                <div className="text-center p-3 bg-primary/10 rounded-lg">
+                  <Users className="w-5 h-5 mx-auto mb-1 text-primary" />
+                  <p className="text-lg font-bold">
+                    {selectedRoute.status === 'completed' 
+                      ? `${selectedRoute.studentsTransported}/${selectedRoute.studentsCount}`
+                      : selectedRoute.studentsCount
+                    }
+                  </p>
+                  <p className="text-xs text-muted-foreground">Estudiantes</p>
+                </div>
+                <div className="text-center p-3 bg-primary/10 rounded-lg">
+                  <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
+                  <p className="text-lg font-bold">
+                    {selectedRoute.status === 'completed' ? '45' : '--'} min
+                  </p>
+                  <p className="text-xs text-muted-foreground">Duración</p>
+                </div>
+              </div>
+
+              {/* Completed route specific info */}
+              {selectedRoute.status === 'completed' && (
+                <div className="border-t pt-4 space-y-3">
+                  <h4 className="font-medium text-sm">Resumen del Recorrido</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>Todas las paradas completadas</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" />
+                      <span>{selectedRoute.studentsTransported} estudiantes transportados</span>
+                    </div>
+                  </div>
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
+                    <p className="text-sm text-primary">
+                      ✓ Ruta completada exitosamente sin incidentes reportados
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Scheduled route specific info */}
+              {selectedRoute.status === 'scheduled' && (
+                <div className="border-t pt-4 space-y-3">
+                  <h4 className="font-medium text-sm">Información de la Ruta</h4>
+                  <div className="bg-secondary border border-border rounded-lg p-3">
+                    <p className="text-sm text-muted-foreground">
+                      ⏰ Esta ruta está programada para hoy. Estará disponible para iniciar a las {formatTime(selectedRoute.estimatedStartTime)}.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
