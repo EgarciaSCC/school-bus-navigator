@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // Base URL for API calls - change this to your backend URL
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://backadminroute-production.up.railway.app',
   
   // API version prefix
   API_PREFIX: '/api',
