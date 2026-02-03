@@ -37,11 +37,10 @@ export const loginRequest = async (
   username: string,
   password: string
 ): Promise<LoginResponse> => {
-  // Encrypt credentials before sending to server
-  debugger;
-  const encryptedUsername = encryptAES256(username);
-  const encryptedPassword = encryptAES256(password);
-  
+
+  const encryptedUsername = await encryptAES256(username);
+  const encryptedPassword = await encryptAES256(password);
+
   try {
     const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.LOGIN), {
       method: 'POST',
@@ -53,9 +52,9 @@ export const loginRequest = async (
         password: encryptedPassword,
       }),
     });
-    
+
     const data = await response.json();
-    
+
     return {
       success: data.success,
       message: data.message,
