@@ -6,8 +6,8 @@ export const AUTH_CONFIG = {
   // IMPORTANT: These must match the backend configuration
   // Key must be exactly 32 bytes for AES-256
   // IV must be exactly 16 bytes for CBC mode
-  AES_SECRET_KEY: 'QzW9eRt6yU2iO1pA7sD4fG0hJ3kL8zXc', // Exactly 32 characters
-  AES_IV: 'MjmqhEAOWZJ4Ekde', // Exactly 16 characters
+  AES_SECRET_KEY: 'rH9uRZ4sQKcA3nWn2v8xQ4cYt9ZzF1yB0Lk6xNw7m5E=', // Exactly 32 characters
+  AES_IV: 'MDEyMzQ1Njc4OWFi', // Exactly 16 characters
   
   // JWT configuration (for reference, handled by backend)
   JWT_EXPIRATION: '1h',
