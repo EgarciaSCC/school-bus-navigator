@@ -315,17 +315,17 @@ const Home = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {selectedRoute?.status === 'completed' ? (
-                <>
-                  <FileText className="w-5 h-5 text-primary" />
-                  Reporte de Ruta
-                </>
-              ) : (
-                <>
-                  <Eye className="w-5 h-5 text-primary" />
-                  Vista Previa de Ruta
-                </>
-              )}
+            {selectedRoute?.status === 'completed' ? (
+              <>
+                <FileText className="w-5 h-5 text-primary" />
+                Reporte de Ruta
+              </>
+            ) : (
+              <>
+                <Eye className="w-5 h-5 text-primary" />
+                Vista Previa de Ruta
+              </>
+            )}
             </DialogTitle>
             <DialogDescription>
               {selectedRoute?.name} - {selectedRoute && getDirectionLabel(selectedRoute.direction)}
@@ -397,7 +397,7 @@ const Home = () => {
               )}
 
               {/* Scheduled route specific info */}
-              {selectedRoute.status === 'scheduled' && (
+              {selectedRoute.status === 'not_started' && (
                 <div className="border-t pt-4 space-y-3">
                   <h4 className="font-medium text-sm">Información de la Ruta</h4>
                   <div className="bg-secondary border border-border rounded-lg p-3">

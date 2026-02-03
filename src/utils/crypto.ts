@@ -16,12 +16,12 @@ const decoder = new TextDecoder();
  * Encrypt AES-256-GCM
  */
 export const encryptAES256 = async (text: string): Promise<string> => {
-  const keyBytes = base64ToUint8(AUTH_CONFIG.AES_SECRET_KEY); // 32 bytes
-  const ivBytes  = base64ToUint8(AUTH_CONFIG.AES_IV);         // 12 bytes
+  const keyBytes = base64ToUint8(AUTH_CONFIG.AES_SECRET_KEY);
+  const ivBytes = base64ToUint8(AUTH_CONFIG.AES_IV);
 
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    keyBytes,
+    keyBytes.buffer as ArrayBuffer,
     { name: 'AES-GCM' },
     false,
     ['encrypt']
@@ -30,7 +30,7 @@ export const encryptAES256 = async (text: string): Promise<string> => {
   const encryptedBuffer = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
-      iv: ivBytes,
+      iv: ivBytes.buffer as ArrayBuffer,
       tagLength: 128,
     },
     cryptoKey,
@@ -45,24 +45,25 @@ export const encryptAES256 = async (text: string): Promise<string> => {
  */
 export const decryptAES256 = async (encryptedBase64: string): Promise<string> => {
   const keyBytes = base64ToUint8(AUTH_CONFIG.AES_SECRET_KEY);
-  const ivBytes  = base64ToUint8(AUTH_CONFIG.AES_IV);
+  const ivBytes = base64ToUint8(AUTH_CONFIG.AES_IV);
 
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    keyBytes,
+    keyBytes.buffer as ArrayBuffer,
     { name: 'AES-GCM' },
     false,
     ['decrypt']
   );
 
+  const encryptedData = base64ToUint8(encryptedBase64);
   const decryptedBuffer = await crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
-      iv: ivBytes,
+      iv: ivBytes.buffer as ArrayBuffer,
       tagLength: 128,
     },
     cryptoKey,
-    base64ToUint8(encryptedBase64)
+    encryptedData.buffer as ArrayBuffer
   );
 
   return decoder.decode(decryptedBuffer);
