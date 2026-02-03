@@ -38,6 +38,7 @@ export const loginRequest = async (
   password: string
 ): Promise<LoginResponse> => {
   // Encrypt credentials before sending to server
+  debugger;
   const encryptedUsername = encryptAES256(username);
   const encryptedPassword = encryptAES256(password);
   
