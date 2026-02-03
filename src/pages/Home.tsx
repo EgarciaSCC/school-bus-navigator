@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   PlayCircle,
   Route,
-  LogOut,
   FileText,
   Eye
 } from 'lucide-react';
@@ -17,19 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -42,12 +29,11 @@ import {
   DriverRoutesTodayResponse, 
   DriverRoutePreview 
 } from '@/services/driverService';
-import logoNCA from '@/assets/isotipo-NCA.png';
-import MobileHeader from '@/components/home/MobileHeader';
+import HomeHeader from '@/components/home/HomeHeader';
+import HomeSidePanel from '@/components/home/HomeSidePanel';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +41,7 @@ const Home = () => {
   const [selectedRoute, setSelectedRoute] = useState<DriverRoutePreview | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   useEffect(() => {
     const fetchRoutes = async () => {
@@ -126,6 +113,11 @@ const Home = () => {
     navigate(`/route/${routeId}`);
   };
 
+  const handlePanelRouteSelect = (route: DriverRoutePreview) => {
+    setSelectedRoute(route);
+    setIsPreviewOpen(true);
+  };
+
   const getDirectionLabel = (direction: 'to_school' | 'from_school') => {
     return direction === 'to_school' ? 'Recogida' : 'Regreso';
   };
@@ -151,48 +143,29 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile/Tablet Header */}
-      {isMobile ? (
-        <MobileHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          busPlate={busPlate}
+      {/* Unified Header */}
+      <HomeHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        busPlate={busPlate}
+        isPanelOpen={isPanelOpen}
+        onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
+        showPanelToggle={!isMobile}
+      />
+
+      {/* Side Panel - Desktop/Tablet only */}
+      {!isMobile && (
+        <HomeSidePanel
+          isOpen={isPanelOpen}
+          onToggle={() => setIsPanelOpen(!isPanelOpen)}
+          activeRoute={filteredRoutes.activeRoute}
+          scheduledRoutes={filteredRoutes.scheduledRoutes}
+          completedRoutes={filteredRoutes.completedRoutes}
+          onRouteSelect={handlePanelRouteSelect}
         />
-      ) : (
-        /* Desktop Header */
-        <header className="border-b bg-card shadow-sm">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={logoNCA} alt="NCA Logo" className="w-10 h-10 object-contain" />
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">NCA Transporte</h1>
-                <p className="text-sm text-muted-foreground">Hola, {user?.name || 'Conductor'}</p>
-              </div>
-            </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Se cerrará tu sesión actual y deberás iniciar sesión nuevamente.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => logout()}>Cerrar Sesión</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </header>
       )}
 
-      <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+      <main className={`max-w-4xl mx-auto p-4 sm:p-6 space-y-6 transition-all duration-300 ${isPanelOpen && !isMobile ? 'mr-80' : ''}`}>
         {/* Search Results Info */}
         {searchQuery && (
           <div className="flex items-center justify-between">
@@ -497,6 +470,21 @@ const Home = () => {
                     </p>
                   </div>
                 </div>
+              )}
+
+              {/* Action Button for Active Route */}
+              {selectedRoute.status === 'not_started' && filteredRoutes.activeRoute?.id === selectedRoute.id && (
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={() => {
+                    setIsPreviewOpen(false);
+                    handleStartRoute(selectedRoute.id);
+                  }}
+                >
+                  <Route className="w-5 h-5 mr-2" />
+                  Iniciar Ruta
+                </Button>
               )}
             </div>
           )}
