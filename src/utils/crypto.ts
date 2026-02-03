@@ -12,8 +12,7 @@ const base64ToUint8 = (b64: string): Uint8Array =>
 export const encryptAES256 = async (text: string): Promise<string> => {
   const keyBytes = base64ToUint8(AUTH_CONFIG.AES_SECRET_KEY);
   const ivBytes  = base64ToUint8(AUTH_CONFIG.AES_IV);
-console.log(keyBytes);
-  console.log(ivBytes);
+  
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
     keyBytes,
