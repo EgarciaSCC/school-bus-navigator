@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bus, 
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,15 +43,18 @@ import {
   DriverRoutePreview 
 } from '@/services/driverService';
 import logoNCA from '@/assets/isotipo-NCA.png';
+import MobileHeader from '@/components/home/MobileHeader';
 
 const Home = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isMobile = useIsMobile();
   
   const [isLoading, setIsLoading] = useState(true);
   const [driverRoutes, setDriverRoutes] = useState<DriverRoutesTodayResponse | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<DriverRoutePreview | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchRoutes = async () => {
@@ -68,13 +72,57 @@ const Home = () => {
     fetchRoutes();
   }, []);
 
+  // Get the bus plate from any available route
+  const busPlate = useMemo(() => {
+    return driverRoutes?.activeRoute?.busPlate 
+      || driverRoutes?.scheduledRoutes?.[0]?.busPlate 
+      || driverRoutes?.completedRoutes?.[0]?.busPlate
+      || undefined;
+  }, [driverRoutes]);
+
+  // Filter routes based on search query
+  const filteredRoutes = useMemo(() => {
+    if (!driverRoutes || !searchQuery.trim()) {
+      return {
+        activeRoute: driverRoutes?.activeRoute || null,
+        scheduledRoutes: driverRoutes?.scheduledRoutes || [],
+        completedRoutes: driverRoutes?.completedRoutes || [],
+      };
+    }
+
+    const query = searchQuery.toLowerCase();
+    
+    const matchesQuery = (route: DriverRoutePreview) => {
+      return (
+        route.name.toLowerCase().includes(query) ||
+        route.busPlate.toLowerCase().includes(query) ||
+        (route.direction === 'to_school' && 'recogida'.includes(query)) ||
+        (route.direction === 'from_school' && 'regreso'.includes(query))
+      );
+    };
+
+    return {
+      activeRoute: driverRoutes.activeRoute && matchesQuery(driverRoutes.activeRoute) 
+        ? driverRoutes.activeRoute 
+        : null,
+      scheduledRoutes: driverRoutes.scheduledRoutes?.filter(matchesQuery) || [],
+      completedRoutes: driverRoutes.completedRoutes?.filter(matchesQuery) || [],
+    };
+  }, [driverRoutes, searchQuery]);
+
+  // Check if there are any results
+  const hasResults = useMemo(() => {
+    return filteredRoutes.activeRoute !== null 
+      || filteredRoutes.scheduledRoutes.length > 0 
+      || filteredRoutes.completedRoutes.length > 0;
+  }, [filteredRoutes]);
+
   const handleViewRoutePreview = (route: DriverRoutePreview) => {
     setSelectedRoute(route);
     setIsPreviewOpen(true);
   };
 
   const handleStartRoute = (routeId: string) => {
-    // Navegar a la página de navegación con la ruta seleccionada
     navigate(`/route/${routeId}`);
   };
 
@@ -92,7 +140,7 @@ const Home = () => {
     return (
       <div className="min-h-screen bg-background p-4 sm:p-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-12 w-48" />
+          <Skeleton className="h-12 w-full" />
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -103,211 +151,254 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logoNCA} alt="NCA Logo" className="w-10 h-10 object-contain" />
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">NCA Transporte</h1>
-              <p className="text-sm text-muted-foreground">Hola, {user?.name || 'Conductor'}</p>
+      {/* Mobile/Tablet Header */}
+      {isMobile ? (
+        <MobileHeader
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          busPlate={busPlate}
+        />
+      ) : (
+        /* Desktop Header */
+        <header className="border-b bg-card shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={logoNCA} alt="NCA Logo" className="w-10 h-10 object-contain" />
+              <div>
+                <h1 className="text-lg font-semibold text-foreground">NCA Transporte</h1>
+                <p className="text-sm text-muted-foreground">Hola, {user?.name || 'Conductor'}</p>
+              </div>
             </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se cerrará tu sesión actual y deberás iniciar sesión nuevamente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => logout()}>Cerrar Sesión</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <LogOut className="w-5 h-5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Se cerrará tu sesión actual y deberás iniciar sesión nuevamente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => logout()}>Cerrar Sesión</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* Ruta Activa / Asignada */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <PlayCircle className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Ruta Asignada</h2>
+        {/* Search Results Info */}
+        {searchQuery && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Resultados para "<span className="font-medium text-foreground">{searchQuery}</span>"
+            </p>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setSearchQuery('')}
+              className="text-xs"
+            >
+              Limpiar
+            </Button>
           </div>
+        )}
 
-          {driverRoutes?.activeRoute ? (
-            <Card className="border-primary/50 bg-primary/5">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{driverRoutes.activeRoute.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-1">
-                      <Clock className="w-4 h-4" />
-                      {formatTime(driverRoutes.activeRoute.estimatedStartTime)} - {formatTime(driverRoutes.activeRoute.estimatedEndTime)}
-                    </CardDescription>
+        {/* No Results */}
+        {searchQuery && !hasResults && (
+          <Card className="border-dashed">
+            <CardContent className="py-8 text-center text-muted-foreground">
+              <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No se encontraron rutas para "{searchQuery}"</p>
+              <p className="text-sm mt-1">Intenta buscar por nombre de ruta, placa de bus o dirección</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Ruta Activa / Asignada */}
+        {(!searchQuery || filteredRoutes.activeRoute) && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <PlayCircle className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold">Ruta Asignada</h2>
+            </div>
+
+            {filteredRoutes.activeRoute ? (
+              <Card className="border-primary/50 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-xl">{filteredRoutes.activeRoute.name}</CardTitle>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        <Clock className="w-4 h-4" />
+                        {formatTime(filteredRoutes.activeRoute.estimatedStartTime)} - {formatTime(filteredRoutes.activeRoute.estimatedEndTime)}
+                      </CardDescription>
+                    </div>
+                    <Badge variant={getDirectionBadgeVariant(filteredRoutes.activeRoute.direction)}>
+                      {getDirectionLabel(filteredRoutes.activeRoute.direction)}
+                    </Badge>
                   </div>
-                  <Badge variant={getDirectionBadgeVariant(driverRoutes.activeRoute.direction)}>
-                    {getDirectionLabel(driverRoutes.activeRoute.direction)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {driverRoutes.activeRoute.stopsCount} paradas
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    {driverRoutes.activeRoute.studentsCount} estudiantes
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bus className="w-4 h-4" />
-                    {driverRoutes.activeRoute.busPlate}
-                  </span>
-                </div>
-                <Button 
-                  className="w-full" 
-                  size="lg"
-                  onClick={() => handleStartRoute(driverRoutes.activeRoute!.id)}
-                >
-                  <Route className="w-5 h-5 mr-2" />
-                  Iniciar Ruta
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-dashed">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <Bus className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No tienes rutas asignadas para este momento</p>
-              </CardContent>
-            </Card>
-          )}
-        </section>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      {filteredRoutes.activeRoute.stopsCount} paradas
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      {filteredRoutes.activeRoute.studentsCount} estudiantes
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Bus className="w-4 h-4" />
+                      {filteredRoutes.activeRoute.busPlate}
+                    </span>
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    size="lg"
+                    onClick={() => handleStartRoute(filteredRoutes.activeRoute!.id)}
+                  >
+                    <Route className="w-5 h-5 mr-2" />
+                    Iniciar Ruta
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : !searchQuery && (
+              <Card className="border-dashed">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <Bus className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No tienes rutas asignadas para este momento</p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        )}
 
         {/* Rutas Programadas */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Calendar className="w-5 h-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Rutas Programadas Hoy</h2>
-          </div>
-
-          {(driverRoutes?.scheduledRoutes?.length ?? 0) > 0 ? (
-            <div className="space-y-3">
-              {driverRoutes?.scheduledRoutes?.map((route) => (
-                <Card key={route.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium">{route.name}</h3>
-                          <Badge variant={getDirectionBadgeVariant(route.direction)} className="text-xs">
-                            {getDirectionLabel(route.direction)}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            {formatTime(route.estimatedStartTime)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {route.stopsCount} paradas
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
-                            {route.studentsCount}
-                          </span>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleViewRoutePreview(route)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Ver
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+        {(!searchQuery || filteredRoutes.scheduledRoutes.length > 0) && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold">Rutas Programadas Hoy</h2>
             </div>
-          ) : (
-            <Card className="border-dashed">
-              <CardContent className="py-6 text-center text-muted-foreground">
-                <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No hay más rutas programadas para hoy</p>
-              </CardContent>
-            </Card>
-          )}
-        </section>
+
+            {filteredRoutes.scheduledRoutes.length > 0 ? (
+              <div className="space-y-3">
+                {filteredRoutes.scheduledRoutes.map((route) => (
+                  <Card key={route.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium">{route.name}</h3>
+                            <Badge variant={getDirectionBadgeVariant(route.direction)} className="text-xs">
+                              {getDirectionLabel(route.direction)}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              {formatTime(route.estimatedStartTime)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {route.stopsCount} paradas
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3.5 h-3.5" />
+                              {route.studentsCount}
+                            </span>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewRoutePreview(route)}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Ver
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : !searchQuery && (
+              <Card className="border-dashed">
+                <CardContent className="py-6 text-center text-muted-foreground">
+                  <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No hay más rutas programadas para hoy</p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        )}
 
         {/* Rutas Completadas */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <CheckCircle2 className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Rutas Completadas Hoy</h2>
-            {(driverRoutes?.completedRoutes?.length ?? 0) > 0 && (
-              <Badge variant="outline" className="ml-auto">
-                {driverRoutes?.completedRoutes?.length} completadas
-              </Badge>
-            )}
-          </div>
-
-          {(driverRoutes?.completedRoutes?.length ?? 0) > 0 ? (
-            <div className="space-y-3">
-              {driverRoutes?.completedRoutes?.map((route) => (
-                <Card key={route.id} className="bg-muted/30">
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CheckCircle2 className="w-4 h-4 text-primary" />
-                          <h3 className="font-medium text-muted-foreground">{route.name}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {getDirectionLabel(route.direction)}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span>
-                            {formatTime(route.actualStartTime || route.estimatedStartTime)} - {formatTime(route.actualEndTime || route.estimatedEndTime)}
-                          </span>
-                          <span>•</span>
-                          <span>{route.studentsTransported}/{route.studentsCount} estudiantes</span>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleViewRoutePreview(route)}
-                      >
-                        <FileText className="w-4 h-4 mr-1" />
-                        Reporte
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+        {(!searchQuery || filteredRoutes.completedRoutes.length > 0) && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold">Rutas Completadas Hoy</h2>
+              {filteredRoutes.completedRoutes.length > 0 && (
+                <Badge variant="outline" className="ml-auto">
+                  {filteredRoutes.completedRoutes.length} completadas
+                </Badge>
+              )}
             </div>
-          ) : (
-            <Card className="border-dashed">
-              <CardContent className="py-6 text-center text-muted-foreground">
-                <CheckCircle2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Aún no has completado rutas hoy</p>
-              </CardContent>
-            </Card>
-          )}
-        </section>
+
+            {filteredRoutes.completedRoutes.length > 0 ? (
+              <div className="space-y-3">
+                {filteredRoutes.completedRoutes.map((route) => (
+                  <Card key={route.id} className="bg-muted/30">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                            <h3 className="font-medium text-muted-foreground">{route.name}</h3>
+                            <Badge variant="outline" className="text-xs">
+                              {getDirectionLabel(route.direction)}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span>
+                              {formatTime(route.actualStartTime || route.estimatedStartTime)} - {formatTime(route.actualEndTime || route.estimatedEndTime)}
+                            </span>
+                            <span>•</span>
+                            <span>{route.studentsTransported}/{route.studentsCount} estudiantes</span>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewRoutePreview(route)}
+                        >
+                          <FileText className="w-4 h-4 mr-1" />
+                          Reporte
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : !searchQuery && (
+              <Card className="border-dashed">
+                <CardContent className="py-6 text-center text-muted-foreground">
+                  <CheckCircle2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Aún no has completado rutas hoy</p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        )}
       </main>
 
       {/* Route Preview/Report Dialog */}
