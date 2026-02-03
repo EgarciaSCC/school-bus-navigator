@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Lock, User, LogIn, AlertCircle, Bus } from 'lucide-react';
 import isotipoNCA from '@/assets/isotipo-NCA.png';
+import { testAESEncryption } from '@/config/auth';
 
 const Login: React.FC = () => {
+  // Run AES encryption test on component mount
+  useEffect(() => {
+    console.log('🔐 Testing AES-256-CBC Encryption...');
+    const result = testAESEncryption();
+    console.log('Test result:', result);
+  }, []);
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
   
