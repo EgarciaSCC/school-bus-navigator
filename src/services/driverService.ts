@@ -6,14 +6,14 @@ export interface DriverRoutePreview {
   id: string;
   name: string;
   direction: 'to_school' | 'from_school';
-  status: 'not_started' | 'in_progress' | 'completed' | 'scheduled';
-  estimatedStartTime: string;
-  estimatedEndTime: string;
-  actualStartTime?: string;
-  actualEndTime?: string;
+  status: 'not_started' | 'in_progress' | 'completed';
+  estimatedStartTime: string;  // "HH:MM"
+  estimatedEndTime: string;    // "HH:MM"
+  actualStartTime?: string;    // "HH:MM" - solo para completadas
+  actualEndTime?: string;      // "HH:MM" - solo para completadas
   stopsCount: number;
   studentsCount: number;
-  studentsTransported?: number;
+  studentsTransported?: number;  // solo para completadas
   busPlate: string;
   busId: string;
 }
