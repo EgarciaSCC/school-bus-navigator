@@ -1,53 +1,69 @@
-import CryptoJS from 'crypto-js';
 import { AUTH_CONFIG } from '@/config/auth';
 
 /**
- * Encrypt text using AES-256-GCM with IV
- * This matches the backend encryption configuration
+ * Utils Base64 ↔ Uint8Array
  */
-
 const base64ToUint8 = (b64: string): Uint8Array =>
   Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 
+const uint8ToBase64 = (bytes: Uint8Array): string =>
+  btoa(String.fromCharCode(...bytes));
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+/**
+ * Encrypt AES-256-GCM
+ */
 export const encryptAES256 = async (text: string): Promise<string> => {
-  const keyBytes = base64ToUint8(AUTH_CONFIG.AES_SECRET_KEY);
-  const ivBytes  = base64ToUint8(AUTH_CONFIG.AES_IV);
-  
+  const keyBytes = base64ToUint8(AUTH_CONFIG.AES_SECRET_KEY); // 32 bytes
+  const ivBytes  = base64ToUint8(AUTH_CONFIG.AES_IV);         // 12 bytes
+
   const cryptoKey = await crypto.subtle.importKey(
-    "raw",
+    'raw',
     keyBytes,
-    { name: "AES-GCM" },
+    { name: 'AES-GCM' },
     false,
-    ["encrypt"]
+    ['encrypt']
   );
 
-  const encrypted = await crypto.subtle.encrypt(
+  const encryptedBuffer = await crypto.subtle.encrypt(
     {
-      name: "AES-GCM",
+      name: 'AES-GCM',
       iv: ivBytes,
       tagLength: 128,
     },
     cryptoKey,
-    new TextEncoder().encode(text)
+    encoder.encode(text)
   );
 
-  return btoa(
-    String.fromCharCode(...new Uint8Array(encrypted))
-  );
+  return uint8ToBase64(new Uint8Array(encryptedBuffer));
 };
 
 /**
- * Decrypt AES-256-CBC encrypted text
+ * Decrypt AES-256-GCM
  */
-export const decryptAES256 = (encryptedText: string): string => {
-  const key = CryptoJS.enc.Utf8.parse(AUTH_CONFIG.AES_SECRET_KEY);
-  const iv = CryptoJS.enc.Utf8.parse(AUTH_CONFIG.AES_IV);
-  
-  const decrypted = CryptoJS.AES.decrypt(encryptedText, key, {
-    iv: iv,
-    mode: CryptoJS.mode.CBC,
-    padding: CryptoJS.pad.Pkcs7,
-  });
-  
-  return decrypted.toString(CryptoJS.enc.Utf8);
+export const decryptAES256 = async (encryptedBase64: string): Promise<string> => {
+  const keyBytes = base64ToUint8(AUTH_CONFIG.AES_SECRET_KEY);
+  const ivBytes  = base64ToUint8(AUTH_CONFIG.AES_IV);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: 'AES-GCM' },
+    false,
+    ['decrypt']
+  );
+
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv: ivBytes,
+      tagLength: 128,
+    },
+    cryptoKey,
+    base64ToUint8(encryptedBase64)
+  );
+
+  return decoder.decode(decryptedBuffer);
 };
