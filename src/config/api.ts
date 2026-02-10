@@ -23,7 +23,7 @@ export const API_ENDPOINTS = {
   
   // Driver routes
   DRIVER: {
-    ROUTES_TODAY: '/driver/routes/today',
+    ROUTES_TODAY: '/driver/routes/getRoutesToday',
     ROUTES_HISTORY: '/driver/routes/history',
   },
   

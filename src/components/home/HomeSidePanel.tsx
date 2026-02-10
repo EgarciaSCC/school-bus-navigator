@@ -1,43 +1,39 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Bus, MapPin, Users, Clock, Calendar, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Bus, Users, Clock, Calendar, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { DriverRoutePreview } from '@/services/driverService';
+import { BackendRoutePreview } from '@/services/driverService';
 
 interface HomeSidePanelProps {
   isOpen: boolean;
   onToggle: () => void;
-  activeRoute: DriverRoutePreview | null;
-  scheduledRoutes: DriverRoutePreview[];
-  completedRoutes: DriverRoutePreview[];
-  onRouteSelect: (route: DriverRoutePreview) => void;
+  activeRoutes: BackendRoutePreview[];
+  scheduledRoutes: BackendRoutePreview[];
+  completedRoutes: BackendRoutePreview[];
+  onRouteSelect: (route: BackendRoutePreview) => void;
 }
+
+const getDirectionLabel = (tipoRuta: string) => {
+  return tipoRuta === 'RECOGIDA' ? 'Recogida' : 'Regreso';
+};
+
+const getDirectionBadgeVariant = (tipoRuta: string): "default" | "secondary" => {
+  return tipoRuta === 'RECOGIDA' ? 'default' : 'secondary';
+};
 
 const HomeSidePanel: React.FC<HomeSidePanelProps> = ({
   isOpen,
   onToggle,
-  activeRoute,
+  activeRoutes,
   scheduledRoutes,
   completedRoutes,
   onRouteSelect,
 }) => {
-  const getDirectionLabel = (direction: 'to_school' | 'from_school') => {
-    return direction === 'to_school' ? 'Recogida' : 'Regreso';
-  };
-
-  const getDirectionBadgeVariant = (direction: 'to_school' | 'from_school') => {
-    return direction === 'to_school' ? 'default' : 'secondary';
-  };
-
-  const allRoutes = [
-    ...(activeRoute ? [activeRoute] : []),
-    ...scheduledRoutes,
-    ...completedRoutes,
-  ];
+  const allRoutes = [...activeRoutes, ...scheduledRoutes, ...completedRoutes];
 
   return (
     <>
-      {/* Toggle Button - Floating on the right edge, vertically centered */}
+      {/* Toggle Button */}
       <button
         onClick={onToggle}
         className={`
@@ -67,7 +63,6 @@ const HomeSidePanel: React.FC<HomeSidePanelProps> = ({
         `}
       >
         <div className="h-full flex flex-col pt-16">
-          {/* Panel Header */}
           <div className="px-4 py-4 border-b border-border">
             <h2 className="font-semibold text-foreground flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
@@ -78,26 +73,26 @@ const HomeSidePanel: React.FC<HomeSidePanelProps> = ({
             </p>
           </div>
 
-          {/* Routes List */}
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-4">
-              {/* Active Route */}
-              {activeRoute && (
+              {activeRoutes.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                     Ruta Activa
                   </p>
-                  <RouteCard
-                    route={activeRoute}
-                    isActive
-                    onClick={() => onRouteSelect(activeRoute)}
-                    getDirectionLabel={getDirectionLabel}
-                    getDirectionBadgeVariant={getDirectionBadgeVariant}
-                  />
+                  <div className="space-y-2">
+                    {activeRoutes.map((route) => (
+                      <RouteCard
+                        key={route.id}
+                        route={route}
+                        isActive
+                        onClick={() => onRouteSelect(route)}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Scheduled Routes */}
               {scheduledRoutes.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -109,15 +104,12 @@ const HomeSidePanel: React.FC<HomeSidePanelProps> = ({
                         key={route.id}
                         route={route}
                         onClick={() => onRouteSelect(route)}
-                        getDirectionLabel={getDirectionLabel}
-                        getDirectionBadgeVariant={getDirectionBadgeVariant}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Completed Routes */}
               {completedRoutes.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -130,15 +122,12 @@ const HomeSidePanel: React.FC<HomeSidePanelProps> = ({
                         route={route}
                         isCompleted
                         onClick={() => onRouteSelect(route)}
-                        getDirectionLabel={getDirectionLabel}
-                        getDirectionBadgeVariant={getDirectionBadgeVariant}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Empty State */}
               {allRoutes.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Bus className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -155,22 +144,13 @@ const HomeSidePanel: React.FC<HomeSidePanelProps> = ({
 
 // Route Card Component
 interface RouteCardProps {
-  route: DriverRoutePreview;
+  route: BackendRoutePreview;
   isActive?: boolean;
   isCompleted?: boolean;
   onClick: () => void;
-  getDirectionLabel: (direction: 'to_school' | 'from_school') => string;
-  getDirectionBadgeVariant: (direction: 'to_school' | 'from_school') => "default" | "secondary";
 }
 
-const RouteCard: React.FC<RouteCardProps> = ({
-  route,
-  isActive,
-  isCompleted,
-  onClick,
-  getDirectionLabel,
-  getDirectionBadgeVariant,
-}) => {
+const RouteCard: React.FC<RouteCardProps> = ({ route, isActive, isCompleted, onClick }) => {
   return (
     <button
       onClick={onClick}
@@ -187,43 +167,36 @@ const RouteCard: React.FC<RouteCardProps> = ({
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h4 className={`font-medium text-sm truncate ${isCompleted ? 'text-muted-foreground' : 'text-foreground'}`}>
-          {route.name}
+          {route.nombre}
         </h4>
         <Badge 
-          variant={isCompleted ? 'outline' : getDirectionBadgeVariant(route.direction)} 
+          variant={isCompleted ? 'outline' : getDirectionBadgeVariant(route.tipoRuta)} 
           className="text-[10px] shrink-0"
         >
-          {getDirectionLabel(route.direction)}
+          {getDirectionLabel(route.tipoRuta)}
         </Badge>
       </div>
       
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {route.actualStartTime || route.estimatedStartTime}
-        </span>
-        <span className="flex items-center gap-1">
-          <MapPin className="w-3 h-3" />
-          {route.stopsCount}
+          {route.horaInicio}
         </span>
         <span className="flex items-center gap-1">
           <Users className="w-3 h-3" />
-          {isCompleted 
-            ? `${route.studentsTransported}/${route.studentsCount}` 
-            : route.studentsCount
-          }
+          {route.estudiantes.length}
         </span>
       </div>
 
       {isActive && (
         <div className="mt-2 flex items-center gap-1 text-xs text-primary font-medium">
           <Bus className="w-3 h-3" />
-          <span>{route.busPlate}</span>
+          <span>{route.busId.slice(0, 8)}...</span>
         </div>
       )}
 
       {isCompleted && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-status-success">
+        <div className="mt-2 flex items-center gap-1 text-xs text-primary">
           <CheckCircle2 className="w-3 h-3" />
           <span>Completada</span>
         </div>
