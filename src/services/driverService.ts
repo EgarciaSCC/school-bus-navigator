@@ -1,34 +1,36 @@
 import { getStoredToken } from '@/services/authService';
 import { API_ENDPOINTS, buildApiUrl } from '@/config/api';
 
-// Types based on API_CONTRACTS.md - Section 2
-export interface DriverRoutePreview {
+// Types matching the actual backend response for GET /api/driver/routes/getRoutesToday
+export interface BackendRoutePreview {
   id: string;
-  name: string;
-  direction: 'to_school' | 'from_school';
-  status: 'not_started' | 'in_progress' | 'completed';
-  estimatedStartTime: string;  // "HH:MM"
-  estimatedEndTime: string;    // "HH:MM"
-  actualStartTime?: string;    // "HH:MM" - solo para completadas
-  actualEndTime?: string;      // "HH:MM" - solo para completadas
-  stopsCount: number;
-  studentsCount: number;
-  studentsTransported?: number;  // solo para completadas
-  busPlate: string;
+  nombre: string;
   busId: string;
+  conductorId: string;
+  coordinadorId: string;
+  sedeId: string;
+  estudiantes: string[];
+  estado: string; // 'ACTIVE' | 'PROGRAMMED' | 'COMPLETED'
+  createdAt: string | null;
+  tipoRuta: 'RECOGIDA' | 'REGRESO';
+  horaInicio: string; // "HH:MM"
+  horaFin: string;    // "HH:MM"
+  fecha: string | null;
+  capacidadActual: number;
+  tenant: string;
 }
 
 export interface DriverRoutesTodayResponse {
   driverId: string;
   driverName: string;
   date: string;
-  activeRoute: DriverRoutePreview | null;
-  scheduledRoutes: DriverRoutePreview[];
-  completedRoutes: DriverRoutePreview[];
+  activeRoutes: BackendRoutePreview[];
+  scheduledRoutes: BackendRoutePreview[];
+  completedRoutes: BackendRoutePreview[];
 }
 
 export interface DriverRouteHistoryResponse {
-  routes: DriverRoutePreview[];
+  routes: BackendRoutePreview[];
   pagination: {
     page: number;
     limit: number;
@@ -51,7 +53,7 @@ export interface HistoryQueryParams {
 
 /**
  * Get driver's routes for today
- * Endpoint: GET /api/driver/routes/today
+ * Endpoint: GET /api/driver/routes/getRoutesToday
  */
 export const getDriverRoutesToday = async (): Promise<DriverRoutesTodayResponse | null> => {
   const token = getStoredToken();
