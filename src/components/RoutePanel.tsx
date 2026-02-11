@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical, Flag, Home, LogOut, LayoutDashboard } from 'lucide-react';
+import { Clock, MapPin, Users, ChevronRight, CheckCircle2, Play, Plus, GripVertical, Flag, Home, LogOut, LayoutDashboard, Bus, Phone } from 'lucide-react';
 import { RouteData, Stop } from '@/types/route';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import isotipoNCA from '@/assets/isotipo-NCA.png';
+import type { BusDetail, CoordinadorDetail } from '@/services/entityService';
 
 interface RoutePanelProps {
   route: RouteData;
@@ -24,9 +25,11 @@ interface RoutePanelProps {
   onStartRoute?: () => void;
   onAddStop?: () => void;
   onReorderStops?: (fromIndex: number, toIndex: number) => void;
+  busDetail?: BusDetail | null;
+  coordinadorDetail?: CoordinadorDetail | null;
 }
 
-const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute, onAddStop, onReorderStops }) => {
+const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRoute, onAddStop, onReorderStops, busDetail, coordinadorDetail }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -108,6 +111,29 @@ const RoutePanel: React.FC<RoutePanelProps> = ({ route, onStopSelect, onStartRou
             <p className="text-[10px] text-red-700">Llegada Est.</p>
           </div>
         </div>
+
+        {/* Bus & Coordinator Info */}
+        {(busDetail || coordinadorDetail) && (
+          <div className="mt-3 space-y-2">
+            {busDetail && (
+              <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2">
+                <Bus className="w-4 h-4 text-primary shrink-0" />
+                <span className="font-medium">{busDetail.placa}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground truncate">{busDetail.marca} {busDetail.modelo}</span>
+              </div>
+            )}
+            {coordinadorDetail && (
+              <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2">
+                <Phone className="w-4 h-4 text-primary shrink-0" />
+                <span className="truncate">{coordinadorDetail.nombre}</span>
+                <a href={`tel:${coordinadorDetail.telefono}`} className="ml-auto text-xs text-primary hover:underline shrink-0">
+                  {coordinadorDetail.telefono}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stops List */}
