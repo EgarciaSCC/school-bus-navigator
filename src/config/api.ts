@@ -35,6 +35,26 @@ export const API_ENDPOINTS = {
     FINISH: (id: string) => `/routes/${id}/finish`,
     REPORT: (id: string) => `/routes/${id}/report`,
   },
+
+  // Rutas (backend entity)
+  RUTAS: {
+    BY_ID: (id: string) => `/rutas/${id}`,
+  },
+
+  // Buses
+  BUSES: {
+    BY_ID: (id: string) => `/buses/${id}`,
+  },
+
+  // Coordinadores
+  COORDINADORES: {
+    BY_ID: (id: string) => `/coordinadores/${id}`,
+  },
+
+  // Pasajeros
+  PASAJEROS: {
+    BY_RUTA_ID: (rutaId: string) => `/pasajeros/listPasajerosByRutaId/${rutaId}`,
+  },
   
   // Stops
   STOPS: {

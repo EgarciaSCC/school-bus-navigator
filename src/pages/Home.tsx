@@ -29,6 +29,7 @@ import {
   DriverRoutesTodayResponse, 
   BackendRoutePreview 
 } from '@/services/driverService';
+import { getBusById, BusDetail } from '@/services/entityService';
 import HomeHeader from '@/components/home/HomeHeader';
 import HomeSidePanel from '@/components/home/HomeSidePanel';
 
@@ -54,6 +55,7 @@ const Home = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   const [driverRoutes, setDriverRoutes] = useState<DriverRoutesTodayResponse | null>(null);
+  const [busDetail, setBusDetail] = useState<BusDetail | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<BackendRoutePreview | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +67,15 @@ const Home = () => {
       try {
         const data = await getDriverRoutesToday();
         setDriverRoutes(data);
+        
+        // Fetch bus detail
+        const anyBusId = data?.activeRoutes?.[0]?.busId 
+          || data?.scheduledRoutes?.[0]?.busId 
+          || data?.completedRoutes?.[0]?.busId;
+        if (anyBusId) {
+          const bus = await getBusById(anyBusId);
+          setBusDetail(bus);
+        }
       } catch (error) {
         console.error('Error fetching routes:', error);
       } finally {
@@ -151,7 +162,7 @@ const Home = () => {
       <HomeHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        busPlate={busId}
+        busPlate={busDetail?.placa || busId}
         isPanelOpen={isPanelOpen}
         onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
         showPanelToggle={!isMobile}
@@ -232,7 +243,7 @@ const Home = () => {
                         </span>
                         <span className="flex items-center gap-1">
                           <Bus className="w-4 h-4" />
-                          {route.busId.slice(0, 8)}...
+                          {busDetail?.placa || route.busId.slice(0, 8)}
                         </span>
                       </div>
                       <Button 
@@ -408,7 +419,7 @@ const Home = () => {
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground mb-1">Bus</p>
-                  <p className="font-medium">{selectedRoute.busId.slice(0, 8)}...</p>
+                  <p className="font-medium">{busDetail?.placa || selectedRoute.busId.slice(0, 8)}</p>
                 </div>
               </div>
 
