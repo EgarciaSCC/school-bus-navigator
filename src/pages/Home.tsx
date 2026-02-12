@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bus, 
@@ -10,7 +10,8 @@ import {
   PlayCircle,
   Route,
   FileText,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,8 @@ import {
   BackendRoutePreview 
 } from '@/services/driverService';
 import { getBusById, BusDetail } from '@/services/entityService';
+import { startDriverRoute } from '@/services/driverRouteActions';
+import { useToast } from '@/hooks/use-toast';
 import HomeHeader from '@/components/home/HomeHeader';
 import HomeSidePanel from '@/components/home/HomeSidePanel';
 
@@ -134,9 +137,25 @@ const Home = () => {
     setIsPreviewOpen(true);
   };
 
-  const handleStartRoute = (routeId: string) => {
-    navigate(`/route/${routeId}`);
-  };
+  const { toast } = useToast();
+  const [startingRouteId, setStartingRouteId] = useState<string | null>(null);
+
+  const handleStartRoute = useCallback(async (routeId: string) => {
+    setStartingRouteId(routeId);
+    try {
+      const result = await startDriverRoute(routeId);
+      if (result && (result.estado === 'STARTED' || result.estado === 'ACTIVE')) {
+        toast({ title: '🚌 Ruta Iniciada', description: `${result.nombre} ha comenzado` });
+        navigate(`/route/${routeId}`);
+      } else {
+        toast({ title: 'Error', description: 'No se pudo iniciar la ruta', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Error de conexión al iniciar la ruta', variant: 'destructive' });
+    } finally {
+      setStartingRouteId(null);
+    }
+  }, [navigate, toast]);
 
   const handlePanelRouteSelect = (route: BackendRoutePreview) => {
     setSelectedRoute(route);
@@ -250,9 +269,19 @@ const Home = () => {
                         className="w-full" 
                         size="lg"
                         onClick={() => handleStartRoute(route.id)}
+                        disabled={startingRouteId === route.id}
                       >
-                        <Route className="w-5 h-5 mr-2" />
-                        Iniciar Ruta
+                        {startingRouteId === route.id ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Iniciando...
+                          </>
+                        ) : (
+                          <>
+                            <Route className="w-5 h-5 mr-2" />
+                            Iniciar Ruta
+                          </>
+                        )}
                       </Button>
                     </CardContent>
                   </Card>

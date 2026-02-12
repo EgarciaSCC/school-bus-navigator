@@ -25,6 +25,13 @@ export const API_ENDPOINTS = {
   DRIVER: {
     ROUTES_TODAY: '/driver/routes/getRoutesToday',
     ROUTES_HISTORY: '/driver/routes/history',
+    START_ROUTE: '/driver/routes/startRoute',
+  },
+
+  // Driver-Passenger actions
+  DRIVER_PASSENGER: {
+    PICKUP: '/driver-passenger/route/passenger-pickup',
+    DROPOFF: '/driver-passenger/route/passenger-dropoff',
   },
   
   // Routes
