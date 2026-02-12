@@ -78,7 +78,17 @@ export const getDriverRoutesToday = async (): Promise<DriverRoutesTodayResponse 
     }
     
     const data = await response.json();
-    return data;
+    
+    // Normalize: ensure estudiantes is always an array
+    const normalize = (routes: BackendRoutePreview[] | undefined | null): BackendRoutePreview[] =>
+      (routes || []).map(r => ({ ...r, estudiantes: r.estudiantes || [] }));
+    
+    return {
+      ...data,
+      activeRoutes: normalize(data.activeRoutes),
+      scheduledRoutes: normalize(data.scheduledRoutes),
+      completedRoutes: normalize(data.completedRoutes),
+    };
   } catch (error) {
     console.error('Error fetching driver routes today:', error);
     return null;

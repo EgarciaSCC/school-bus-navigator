@@ -184,7 +184,7 @@ const RouteCard: React.FC<RouteCardProps> = ({ route, isActive, isCompleted, onC
         </span>
         <span className="flex items-center gap-1">
           <Users className="w-3 h-3" />
-          {route.estudiantes.length}
+          {(route.estudiantes || []).length}
         </span>
       </div>
 

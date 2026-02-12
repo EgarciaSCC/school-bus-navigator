@@ -239,7 +239,7 @@ const Home = () => {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                         <span className="flex items-center gap-1">
                           <Users className="w-4 h-4" />
-                          {route.estudiantes.length} estudiantes
+                          {(route.estudiantes || []).length} estudiantes
                         </span>
                         <span className="flex items-center gap-1">
                           <Bus className="w-4 h-4" />
@@ -297,7 +297,7 @@ const Home = () => {
                             </span>
                             <span className="flex items-center gap-1">
                               <Users className="w-3.5 h-3.5" />
-                              {route.estudiantes.length}
+                              {(route.estudiantes || []).length}
                             </span>
                           </div>
                         </div>
@@ -357,7 +357,7 @@ const Home = () => {
                               {formatTime(route.horaInicio)} - {formatTime(route.horaFin)}
                             </span>
                             <span>•</span>
-                            <span>{route.estudiantes.length} estudiantes</span>
+                            <span>{(route.estudiantes || []).length} estudiantes</span>
                           </div>
                         </div>
                         <Button 
@@ -427,7 +427,7 @@ const Home = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-3 bg-primary/10 rounded-lg">
                   <Users className="w-5 h-5 mx-auto mb-1 text-primary" />
-                  <p className="text-lg font-bold">{selectedRoute.estudiantes.length}</p>
+                  <p className="text-lg font-bold">{(selectedRoute.estudiantes || []).length}</p>
                   <p className="text-xs text-muted-foreground">Estudiantes</p>
                 </div>
                 <div className="text-center p-3 bg-primary/10 rounded-lg">
