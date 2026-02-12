@@ -18,6 +18,7 @@ interface ActionBarProps {
   routeStatus: 'not_started' | 'in_progress' | 'completed';
   currentStop?: Stop;
   onStartRoute: () => void;
+  isStarting?: boolean;
   onReportIncident: (type: IncidentType) => void;
   onCompleteStop: () => void;
   onShowStopDetail: () => void;
@@ -28,6 +29,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
   routeStatus,
   currentStop,
   onStartRoute,
+  isStarting,
   onReportIncident,
   onCompleteStop,
   onShowStopDetail,
@@ -44,10 +46,20 @@ const ActionBar: React.FC<ActionBarProps> = ({
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
         <button
           onClick={onStartRoute}
-          className="btn-primary text-lg px-8 py-4 animate-bounce-soft"
+          disabled={isStarting}
+          className="btn-primary text-lg px-8 py-4 animate-bounce-soft disabled:opacity-70 disabled:cursor-not-allowed disabled:animate-none"
         >
-          <Play className="w-6 h-6" />
-          Iniciar Ruta
+          {isStarting ? (
+            <>
+              <span className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin inline-block mr-2" />
+              Iniciando...
+            </>
+          ) : (
+            <>
+              <Play className="w-6 h-6" />
+              Iniciar Ruta
+            </>
+          )}
         </button>
       </div>
     );

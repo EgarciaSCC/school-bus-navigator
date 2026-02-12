@@ -27,7 +27,7 @@ import {
   CoordinadorDetail,
   EstudianteDetail,
 } from '@/services/entityService';
-import { passengerPickup, passengerDropoff } from '@/services/driverRouteActions';
+import { startDriverRoute, passengerPickup, passengerDropoff } from '@/services/driverRouteActions';
 
 interface NotificationData {
   stopName: string;
@@ -278,24 +278,37 @@ const Index = () => {
     }
   }, [confirmArrival, nextStop]);
 
-  // Handle start route
-  const handleStartRoute = useCallback(() => {
-    setRoute(prev => ({
-      ...prev,
-      status: 'in_progress',
-      stops: prev.stops.map((s, i) =>
-        i === 0 ? { ...s, status: 'active' } : s
-      ),
-    }));
+  // Handle start route — calls backend PUT startRoute
+  const [isStarting, setIsStarting] = useState(false);
 
-    startTracking();
-    setIsPanelVisible(false);
-
-    toast({
-      title: '🚌 Ruta Iniciada',
-      description: `${route.name} - ${route.stops.length} paradas`,
-    });
-  }, [route.name, route.stops.length, toast, startTracking]);
+  const handleStartRoute = useCallback(async () => {
+    if (!routeId) return;
+    setIsStarting(true);
+    try {
+      const result = await startDriverRoute(routeId);
+      if (result && (result.estado === 'STARTED' || result.estado === 'ACTIVE')) {
+        setRoute(prev => ({
+          ...prev,
+          status: 'in_progress',
+          stops: prev.stops.map((s, i) =>
+            i === 0 ? { ...s, status: 'active' } : s
+          ),
+        }));
+        startTracking();
+        setIsPanelVisible(false);
+        toast({
+          title: '🚌 Ruta Iniciada',
+          description: `${route.name} - ${route.stops.length} paradas`,
+        });
+      } else {
+        toast({ title: 'Error', description: 'No se pudo iniciar la ruta en el servidor', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Error de conexión al iniciar la ruta', variant: 'destructive' });
+    } finally {
+      setIsStarting(false);
+    }
+  }, [routeId, route.name, route.stops.length, toast, startTracking]);
 
   // Handle complete current stop
   const handleCompleteStop = useCallback(() => {
@@ -610,6 +623,7 @@ const Index = () => {
           routeStatus={route.status}
           currentStop={nextStop}
           onStartRoute={handleStartRoute}
+          isStarting={isStarting}
           onReportIncident={handleReportIncident}
           onCompleteStop={handleCompleteStop}
           onShowStopDetail={() => {

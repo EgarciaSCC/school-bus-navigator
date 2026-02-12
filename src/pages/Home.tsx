@@ -10,8 +10,7 @@ import {
   PlayCircle,
   Route,
   FileText,
-  Eye,
-  Loader2
+  Eye
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,8 +30,6 @@ import {
   BackendRoutePreview 
 } from '@/services/driverService';
 import { getBusById, BusDetail } from '@/services/entityService';
-import { startDriverRoute } from '@/services/driverRouteActions';
-import { useToast } from '@/hooks/use-toast';
 import HomeHeader from '@/components/home/HomeHeader';
 import HomeSidePanel from '@/components/home/HomeSidePanel';
 
@@ -137,25 +134,9 @@ const Home = () => {
     setIsPreviewOpen(true);
   };
 
-  const { toast } = useToast();
-  const [startingRouteId, setStartingRouteId] = useState<string | null>(null);
-
-  const handleStartRoute = useCallback(async (routeId: string) => {
-    setStartingRouteId(routeId);
-    try {
-      const result = await startDriverRoute(routeId);
-      if (result && (result.estado === 'STARTED' || result.estado === 'ACTIVE')) {
-        toast({ title: '🚌 Ruta Iniciada', description: `${result.nombre} ha comenzado` });
-        navigate(`/route/${routeId}`);
-      } else {
-        toast({ title: 'Error', description: 'No se pudo iniciar la ruta', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Error de conexión al iniciar la ruta', variant: 'destructive' });
-    } finally {
-      setStartingRouteId(null);
-    }
-  }, [navigate, toast]);
+  const handleGoToRoute = useCallback((routeId: string) => {
+    navigate(`/route/${routeId}`);
+  }, [navigate]);
 
   const handlePanelRouteSelect = (route: BackendRoutePreview) => {
     setSelectedRoute(route);
@@ -176,7 +157,7 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Unified Header */}
       <HomeHeader
         searchQuery={searchQuery}
@@ -199,7 +180,7 @@ const Home = () => {
         />
       )}
 
-      <main className={`max-w-4xl mx-auto p-4 sm:p-6 space-y-6 transition-all duration-300 ${isPanelOpen && !isMobile ? 'mr-80' : ''}`}>
+      <main className={`flex-1 overflow-y-auto max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-6 transition-all duration-300 ${isPanelOpen && !isMobile ? 'mr-80' : ''}`}>
         {/* Search Results Info */}
         {searchQuery && (
           <div className="flex items-center justify-between">
@@ -268,20 +249,10 @@ const Home = () => {
                       <Button 
                         className="w-full" 
                         size="lg"
-                        onClick={() => handleStartRoute(route.id)}
-                        disabled={startingRouteId === route.id}
+                        onClick={() => handleGoToRoute(route.id)}
                       >
-                        {startingRouteId === route.id ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Iniciando...
-                          </>
-                        ) : (
-                          <>
-                            <Route className="w-5 h-5 mr-2" />
-                            Iniciar Ruta
-                          </>
-                        )}
+                        <Route className="w-5 h-5 mr-2" />
+                        Iniciar Ruta
                       </Button>
                     </CardContent>
                   </Card>
@@ -509,7 +480,7 @@ const Home = () => {
                   size="lg"
                   onClick={() => {
                     setIsPreviewOpen(false);
-                    handleStartRoute(selectedRoute.id);
+                    handleGoToRoute(selectedRoute.id);
                   }}
                 >
                   <Route className="w-5 h-5 mr-2" />
