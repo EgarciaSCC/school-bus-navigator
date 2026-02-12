@@ -27,6 +27,7 @@ import {
   CoordinadorDetail,
   EstudianteDetail,
 } from '@/services/entityService';
+import { passengerPickup, passengerDropoff } from '@/services/driverRouteActions';
 
 interface NotificationData {
   stopName: string;
@@ -375,8 +376,19 @@ const Index = () => {
     setIsStopSheetOpen(true);
   }, []);
 
-  const handleStudentAction = useCallback((student: Student, action: 'picked' | 'dropped' | 'absent') => {
+  const handleStudentAction = useCallback(async (student: Student, action: 'picked' | 'dropped' | 'absent') => {
     const stop = route.stops.find(s => s.students.some(st => st.id === student.id));
+
+    // Call backend for pickup/dropoff
+    if (routeId && (action === 'picked' || action === 'dropped')) {
+      const success = action === 'picked'
+        ? await passengerPickup(routeId, student.id)
+        : await passengerDropoff(routeId, student.id);
+
+      if (!success) {
+        toast({ title: '⚠️ Error', description: 'No se pudo registrar la acción en el servidor', variant: 'destructive' });
+      }
+    }
 
     setRoute(prev => ({
       ...prev,
@@ -403,7 +415,7 @@ const Index = () => {
     const actionLabel = action === 'picked' ? 'recogido' : action === 'dropped' ? 'dejado en casa' : 'no abordó';
     const emoji = action === 'absent' ? '⚠️' : '👤';
     toast({ title: `${emoji} ${student.name}`, description: `Estudiante ${actionLabel}` });
-  }, [toast, route.stops, recordStudentAction]);
+  }, [toast, route.stops, recordStudentAction, routeId]);
 
   const handleAddStudentToStop = useCallback((student: Student) => {
     if (!selectedStop) return;
