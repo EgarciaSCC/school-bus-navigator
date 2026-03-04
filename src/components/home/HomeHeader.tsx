@@ -80,17 +80,19 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     <>
       <header className="border-b bg-card shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          {/* Back button + Search */}
+          {/* Back button (desktop only) + Search */}
           <div className={`flex items-center gap-1 transition-all duration-200 ${isMobile && isSearchExpanded ? 'flex-1' : isMobile ? '' : 'flex-1 max-w-md'}`}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="text-muted-foreground hover:text-foreground shrink-0"
-              title="Volver al inicio"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            {!isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+                title="Volver al inicio"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
             {isMobile ? (
               // Mobile: Collapsible search
               isSearchExpanded ? (
