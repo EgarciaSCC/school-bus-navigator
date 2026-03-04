@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // Base URL for API calls - change this to your backend URL
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://backadminroute-production.up.railway.app',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://api.ncacademico.app',
   
   // API version prefix
   API_PREFIX: '/api',
