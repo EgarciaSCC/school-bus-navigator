@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, AlertTriangle, LogOut, Info, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, AlertTriangle, LogOut, Info, PanelRightOpen, PanelRightClose, ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import {
@@ -43,6 +44,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   showPanelToggle = false,
 }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserInfoOpen, setIsUserInfoOpen] = useState(false);
@@ -78,8 +80,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     <>
       <header className="border-b bg-card shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          {/* Search - Collapsible on mobile, always visible on desktop */}
-          <div className={`flex items-center transition-all duration-200 ${isMobile && isSearchExpanded ? 'flex-1' : isMobile ? '' : 'flex-1 max-w-md'}`}>
+          {/* Back button + Search */}
+          <div className={`flex items-center gap-1 transition-all duration-200 ${isMobile && isSearchExpanded ? 'flex-1' : isMobile ? '' : 'flex-1 max-w-md'}`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/')}
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              title="Volver al inicio"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             {isMobile ? (
               // Mobile: Collapsible search
               isSearchExpanded ? (
@@ -127,7 +138,12 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           {/* Logo - Center */}
           {(!isMobile || !isSearchExpanded) && (
             <div className={`${isMobile ? 'flex-1' : ''} flex justify-center`}>
-              <img src={logoNCA} alt="NCA Logo" className="h-9 w-auto object-contain" />
+              <img
+                src={logoNCA}
+                alt="NCA Logo"
+                className="h-9 w-auto object-contain cursor-pointer"
+                onClick={() => navigate('/')}
+              />
             </div>
           )}
 
