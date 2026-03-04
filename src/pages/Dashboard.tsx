@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bus, CreditCard, UserPlus, UtensilsCrossed, LayoutDashboard } from 'lucide-react';
+import { Bus, CreditCard, UserPlus, UtensilsCrossed, LayoutDashboard, LifeBuoy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import logoNCA from '@/assets/isotipo-NCA.png';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,8 +29,8 @@ const modules = [
     label: 'Admisiones',
     icon: UserPlus,
     path: '/admisiones',
-    color: 'from-[hsl(264,94%,50%)] to-[hsl(264,94%,40%)]',
-    iconBg: 'bg-[hsl(264,94%,50%)/0.15]',
+    color: 'from-[#FC4554] to-[#d93a48]',
+    iconBg: 'bg-[#FC4554]/15',
     available: false,
   },
   {
@@ -38,8 +38,8 @@ const modules = [
     label: 'Pagos',
     icon: CreditCard,
     path: '/pagos',
-    color: 'from-[hsl(43,100%,50%)] to-[hsl(43,100%,40%)]',
-    iconBg: 'bg-[hsl(43,100%,50%)/0.15]',
+    color: 'from-[#FC4554] to-[#d93a48]',
+    iconBg: 'bg-[#FC4554]/15',
     available: false,
   },
   {
@@ -47,8 +47,8 @@ const modules = [
     label: 'Rutas',
     icon: Bus,
     path: '/rutas',
-    color: 'from-[hsl(160,84%,39%)] to-[hsl(160,84%,29%)]',
-    iconBg: 'bg-[hsl(160,84%,39%)/0.15]',
+    color: 'from-[#610CF4] to-[#4e09c4]',
+    iconBg: 'bg-[#610CF4]/15',
     available: true,
   },
   {
@@ -56,8 +56,8 @@ const modules = [
     label: 'Cafetería',
     icon: UtensilsCrossed,
     path: '/cafeteria',
-    color: 'from-[hsl(355,97%,64%)] to-[hsl(355,97%,50%)]',
-    iconBg: 'bg-[hsl(355,97%,64%)/0.15]',
+    color: 'from-[#610CF4] to-[#4e09c4]',
+    iconBg: 'bg-[#610CF4]/15',
     available: false,
   },
   {
@@ -65,9 +65,18 @@ const modules = [
     label: 'Tablero',
     icon: LayoutDashboard,
     path: '/tablero',
-    color: 'from-[hsl(200,80%,50%)] to-[hsl(200,80%,40%)]',
-    iconBg: 'bg-[hsl(200,80%,50%)/0.15]',
+    color: 'from-[#FFD464] to-[#e6be56]',
+    iconBg: 'bg-[#FFD464]/15',
     available: false,
+  },
+  {
+    id: 'soporte',
+    label: 'Soporte',
+    icon: LifeBuoy,
+    path: '/soporte',
+    color: 'from-[#3B82F6] to-[#2563EB]',
+    iconBg: 'bg-[#3B82F6]/15',
+    available: true,
   },
 ];
 
