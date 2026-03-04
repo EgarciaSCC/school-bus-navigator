@@ -10,7 +10,8 @@ import {
   PlayCircle,
   Route,
   FileText,
-  Eye
+  Eye,
+  Home as HomeIcon
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -157,7 +158,7 @@ const Home = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className={`h-screen flex flex-col bg-background overflow-hidden ${isMobile ? 'pb-16' : ''}`}>
       {/* Unified Header */}
       <HomeHeader
         searchQuery={searchQuery}
@@ -491,6 +492,21 @@ const Home = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
+          <div className="flex items-center justify-center py-2 px-4">
+            <button
+              onClick={() => navigate('/')}
+              className="flex flex-col items-center gap-0.5 px-6 py-1.5 rounded-xl text-muted-foreground hover:text-primary active:scale-95 transition-all"
+            >
+              <HomeIcon className="w-6 h-6" />
+              <span className="text-[10px] font-medium">Inicio</span>
+            </button>
+          </div>
+        </nav>
+      )}
     </div>
   );
 };
