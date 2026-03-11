@@ -11,7 +11,11 @@ import {
   Route,
   FileText,
   Eye,
-  Home as HomeIcon
+  Home as HomeIcon,
+  UserPlus,
+  CreditCard,
+  UtensilsCrossed,
+  LifeBuoy
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
