@@ -84,17 +84,8 @@ const modules = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = React.useState(false);
-
-  const bottomNavItems = [
-    { icon: UserPlus, label: 'Admisiones', path: '/admisiones', color: '#FC4554' },
-    { icon: CreditCard, label: 'Pagos', path: '/pagos', color: '#FC4554' },
-    { icon: HomeIcon, label: 'Inicio', path: '/', color: undefined, isHome: true },
-    { icon: Bus, label: 'Rutas', path: '/rutas', color: '#610CF4' },
-    { icon: UtensilsCrossed, label: 'Cafetería', path: '/cafeteria', color: '#610CF4' },
-  ];
 
   const getInitials = (name: string) =>
     name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
