@@ -32,6 +32,7 @@ import {
 import { getBusById, BusDetail } from '@/services/entityService';
 import HomeHeader from '@/components/home/HomeHeader';
 import HomeSidePanel from '@/components/home/HomeSidePanel';
+import MobileBottomNav from '@/components/MobileBottomNav';
 
 // Helper functions for the new backend structure
 const getDirectionLabel = (tipoRuta: string) => {
