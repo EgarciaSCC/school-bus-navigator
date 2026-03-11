@@ -19,9 +19,8 @@ export const AUTH_CONFIG = {
 };
 
 // Debug function to test encryption/decryption
-export const testAESEncryption = (): { success: boolean; message: string } => {
+export const testAESEncryption = async (): Promise<{ success: boolean; message: string }> => {
   try {
-    // Dynamic import
     const CryptoJS = (await import('crypto-js')).default;
     
     const testText = 'test_username_123';
