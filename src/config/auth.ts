@@ -19,10 +19,9 @@ export const AUTH_CONFIG = {
 };
 
 // Debug function to test encryption/decryption
-export const testAESEncryption = (): { success: boolean; message: string } => {
+export const testAESEncryption = async (): Promise<{ success: boolean; message: string }> => {
   try {
-    // Import dynamically to avoid circular dependency issues
-    const CryptoJS = require('crypto-js');
+    const CryptoJS = (await import('crypto-js')).default;
     
     const testText = 'test_username_123';
     const key = CryptoJS.enc.Utf8.parse(AUTH_CONFIG.AES_SECRET_KEY);

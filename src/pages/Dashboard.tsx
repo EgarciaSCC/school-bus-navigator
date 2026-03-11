@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bus, CreditCard, UserPlus, UtensilsCrossed, LayoutDashboard, LifeBuoy } from 'lucide-react';
+import { Bus, CreditCard, UserPlus, UtensilsCrossed, LayoutDashboard, LifeBuoy, Home as HomeIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import logoNCA from '@/assets/isotipo-NCA.png';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -83,8 +84,17 @@ const modules = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = React.useState(false);
+
+  const bottomNavItems = [
+    { icon: UserPlus, label: 'Admisiones', path: '/admisiones', color: '#FC4554' },
+    { icon: CreditCard, label: 'Pagos', path: '/pagos', color: '#FC4554' },
+    { icon: HomeIcon, label: 'Inicio', path: '/', color: undefined, isHome: true },
+    { icon: Bus, label: 'Rutas', path: '/rutas', color: '#610CF4' },
+    { icon: UtensilsCrossed, label: 'Cafetería', path: '/cafeteria', color: '#610CF4' },
+  ];
 
   const getInitials = (name: string) =>
     name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -96,7 +106,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className={`min-h-screen bg-background flex flex-col ${isMobile ? 'pb-20' : ''}`}>
       {/* Header */}
       <header className="border-b bg-card shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -200,6 +210,47 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <>
+          {/* Floating Support Button */}
+          <button
+            onClick={() => navigate('/soporte')}
+            className="fixed bottom-24 right-4 z-[60] w-14 h-14 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#2563EB] shadow-lg shadow-[#3B82F6]/30 flex items-center justify-center active:scale-95 transition-transform"
+          >
+            <LifeBuoy className="w-6 h-6 text-white" />
+          </button>
+
+          <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
+            <div className="flex items-center justify-around py-1.5 px-2">
+              {bottomNavItems.map((item) => {
+                const Icon = item.icon;
+                const isHome = 'isHome' in item && item.isHome;
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => navigate(item.path)}
+                    className={`flex flex-col items-center gap-0.5 py-1.5 px-2 rounded-xl active:scale-95 transition-all ${
+                      isHome ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <div
+                      className={`flex items-center justify-center w-8 h-8 rounded-lg ${isHome ? 'bg-primary/10' : ''}`}
+                    >
+                      <Icon
+                        className="w-5 h-5"
+                        style={!isHome && item.color ? { color: item.color } : undefined}
+                      />
+                    </div>
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        </>
+      )}
     </div>
   );
 };

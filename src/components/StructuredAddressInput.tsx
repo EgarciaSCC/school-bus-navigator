@@ -61,7 +61,7 @@ const StructuredAddressInput: React.FC<StructuredAddressInputProps> = ({
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
-  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Build the structured address
   const buildAddress = useCallback(() => {
