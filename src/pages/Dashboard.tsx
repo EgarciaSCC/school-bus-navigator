@@ -179,11 +179,6 @@ const Dashboard = () => {
                 <span className="text-sm sm:text-base font-semibold text-foreground">
                   {mod.label}
                 </span>
-                {!mod.available && (
-                  <span className="absolute top-2 right-2 text-[10px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-                    Próximamente
-                  </span>
-                )}
               </button>
             );
           })}
