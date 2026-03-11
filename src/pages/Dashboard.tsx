@@ -1,8 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bus, CreditCard, UserPlus, UtensilsCrossed, LayoutDashboard, LifeBuoy, Home as HomeIcon } from 'lucide-react';
+import { Bus, CreditCard, UserPlus, UtensilsCrossed, LayoutDashboard, LifeBuoy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 import logoNCA from '@/assets/isotipo-NCA.png';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
